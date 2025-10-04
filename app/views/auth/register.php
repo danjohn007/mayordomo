@@ -9,17 +9,18 @@
                         <i class="bi bi-building text-primary" style="font-size: 3rem;"></i>
                         <h2 class="mt-3">Registrar Hotel</h2>
                         <p class="text-muted">Registro para Propietarios y Administradores de Hoteles</p>
-                        <?php 
-                        $trialDays = $trialDays ?? 30;
-                        if ($trialDays > 0): 
-                        ?>
-                        <div class="alert alert-success mt-3">
-                            <i class="bi bi-gift"></i> 
-                            <strong>¡Prueba gratis por <?= $trialDays ?> días!</strong><br>
-                            Puedes usar MajorBot completamente gratis durante tu período de prueba.
-                        </div>
-                        <?php endif; ?>
                     </div>
+                    
+                    <?php 
+                    $trialDays = $trialDays ?? 30;
+                    if ($trialDays > 0): 
+                    ?>
+                    <div class="alert alert-success mb-3">
+                        <i class="bi bi-gift"></i> 
+                        <strong>¡Prueba gratis por <?= $trialDays ?> días!</strong><br>
+                        Puedes usar MajorBot completamente gratis durante tu período de prueba.
+                    </div>
+                    <?php endif; ?>
                     
                     <?php if ($flash = flash('error')): ?>
                         <div class="alert alert-<?= $flash['type'] ?> alert-dismissible fade show">
@@ -83,6 +84,13 @@
                             </select>
                         </div>
                         
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="accept_terms" name="accept_terms" required>
+                            <label class="form-check-label small" for="accept_terms">
+                                Acepto los <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">términos y condiciones</a>
+                            </label>
+                        </div>
+                        
                         <button type="submit" class="btn btn-primary w-100 mb-3">
                             <i class="bi bi-check-circle"></i> Registrarse
                         </button>
@@ -94,6 +102,38 @@
                         </div>
                     </form>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Terms and Conditions Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Términos y Condiciones</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <?php 
+                $terms = getSetting('terms_and_conditions', '');
+                if (!empty($terms)): 
+                    echo nl2br(e($terms));
+                else: 
+                ?>
+                <p>Al utilizar MajorBot, aceptas los siguientes términos y condiciones:</p>
+                <ol>
+                    <li>El uso del sistema está sujeto a las políticas de privacidad y términos de servicio.</li>
+                    <li>Los datos proporcionados serán utilizados únicamente para la gestión del servicio.</li>
+                    <li>El período de prueba gratuito está sujeto a los términos establecidos.</li>
+                    <li>El usuario es responsable de mantener la confidencialidad de su cuenta.</li>
+                    <li>MajorBot se reserva el derecho de modificar estos términos en cualquier momento.</li>
+                </ol>
+                <?php endif; ?>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendido</button>
             </div>
         </div>
     </div>

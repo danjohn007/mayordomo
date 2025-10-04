@@ -119,6 +119,60 @@
                 </a>
                 <?php endif; ?>
             </nav>
+            
+            <?php if (hasRole(['admin'])): ?>
+            <!-- Subscription Info for Admin -->
+            <div class="p-3 border-top mt-auto">
+                <?php
+                // Get subscription info for sidebar
+                global $db;
+                if (!isset($db)) {
+                    require_once APP_PATH . '/config/database.php';
+                    $db = getDBConnection();
+                }
+                $currentUser = currentUser();
+                $stmt = $db->prepare("
+                    SELECT us.*, s.name as plan_name, s.price,
+                           DATEDIFF(us.end_date, CURDATE()) as days_remaining
+                    FROM user_subscriptions us
+                    JOIN subscriptions s ON us.subscription_id = s.id
+                    WHERE us.user_id = ? AND us.status = 'active'
+                    ORDER BY us.end_date DESC
+                    LIMIT 1
+                ");
+                $stmt->execute([$currentUser['id']]);
+                $subscription = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($subscription):
+                    $daysRemaining = $subscription['days_remaining'] ?? 0;
+                    $badgeClass = $daysRemaining > 7 ? 'success' : ($daysRemaining > 0 ? 'warning' : 'danger');
+                ?>
+                <div class="card border-<?= $badgeClass ?> mb-0">
+                    <div class="card-body p-2">
+                        <h6 class="card-title mb-1 small"><i class="bi bi-credit-card"></i> Plan Activo</h6>
+                        <p class="mb-1 small"><strong><?= e($subscription['plan_name']) ?></strong></p>
+                        <p class="mb-1 small text-muted"><?= formatCurrency($subscription['price']) ?></p>
+                        <p class="mb-2">
+                            <span class="badge bg-<?= $badgeClass ?> small">
+                                <?= $daysRemaining ?> días restantes
+                            </span>
+                        </p>
+                        <a href="<?= BASE_URL ?>/profile" class="btn btn-<?= $badgeClass ?> btn-sm w-100">
+                            <i class="bi bi-arrow-up-circle"></i> Actualizar Plan
+                        </a>
+                    </div>
+                </div>
+                <?php else: ?>
+                <div class="alert alert-warning mb-0 p-2 small">
+                    <i class="bi bi-exclamation-triangle"></i> Sin plan activo
+                    <br>
+                    <a href="<?= BASE_URL ?>/profile" class="btn btn-warning btn-sm mt-1 w-100">
+                        Activar Plan
+                    </a>
+                </div>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
     <?php endif; ?>
