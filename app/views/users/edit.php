@@ -37,6 +37,9 @@
                             <option value="hostess" <?= $editUser['role'] === 'hostess' ? 'selected' : '' ?>>Hostess</option>
                             <option value="manager" <?= $editUser['role'] === 'manager' ? 'selected' : '' ?>>Gerente</option>
                             <option value="admin" <?= $editUser['role'] === 'admin' ? 'selected' : '' ?>>Administrador</option>
+                            <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin'): ?>
+                            <option value="superadmin" <?= $editUser['role'] === 'superadmin' ? 'selected' : '' ?>>Superadministrador</option>
+                            <?php endif; ?>
                         </select>
                     </div>
                     

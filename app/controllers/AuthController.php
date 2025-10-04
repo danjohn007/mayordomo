@@ -107,6 +107,7 @@ class AuthController extends BaseController {
             redirect('auth/register');
         }
         
+        $hotel_name = sanitize($_POST['hotel_name'] ?? '');
         $data = [
             'email' => sanitize($_POST['email'] ?? ''),
             'password' => $_POST['password'] ?? '',
@@ -115,11 +116,15 @@ class AuthController extends BaseController {
             'last_name' => sanitize($_POST['last_name'] ?? ''),
             'phone' => sanitize($_POST['phone'] ?? ''),
             'subscription_id' => intval($_POST['subscription_id'] ?? 0),
-            'role' => 'guest'
+            'role' => 'admin' // Admin Local - propietario del hotel
         ];
         
         // Validation
         $errors = [];
+        
+        if (empty($hotel_name)) {
+            $errors[] = 'El nombre del hotel es requerido';
+        }
         
         if (empty($data['first_name'])) {
             $errors[] = 'El nombre es requerido';
@@ -156,14 +161,71 @@ class AuthController extends BaseController {
             redirect('auth/register');
         }
         
-        // Create user
-        unset($data['confirm_password']);
-        
-        if ($userModel->create($data)) {
-            flash('success', 'Registro exitoso. Por favor inicia sesión.', 'success');
+        // Begin transaction - create hotel and user
+        try {
+            $this->db->beginTransaction();
+            
+            // 1. Create hotel first
+            $stmt = $this->db->prepare("
+                INSERT INTO hotels (name, email, is_active, created_at) 
+                VALUES (?, ?, 1, NOW())
+            ");
+            $stmt->execute([$hotel_name, $data['email']]);
+            $hotel_id = $this->db->lastInsertId();
+            
+            // 2. Create user as owner/admin of the hotel
+            $data['hotel_id'] = $hotel_id;
+            unset($data['confirm_password']);
+            
+            if (!$userModel->create($data)) {
+                throw new Exception('Error al crear el usuario');
+            }
+            
+            $user_id = $this->db->lastInsertId();
+            
+            // 3. Set the user as owner of the hotel
+            $stmt = $this->db->prepare("UPDATE hotels SET owner_id = ? WHERE id = ?");
+            $stmt->execute([$user_id, $hotel_id]);
+            
+            // 4. Activate trial subscription if subscription_id is provided
+            if ($data['subscription_id'] > 0) {
+                // Get subscription details
+                $stmt = $this->db->prepare("SELECT * FROM subscriptions WHERE id = ? AND is_active = 1");
+                $stmt->execute([$data['subscription_id']]);
+                $subscription = $stmt->fetch();
+                
+                if ($subscription) {
+                    // Create user subscription
+                    $start_date = date('Y-m-d');
+                    $end_date = date('Y-m-d', strtotime('+' . $subscription['duration_days'] . ' days'));
+                    
+                    $stmt = $this->db->prepare("
+                        INSERT INTO user_subscriptions (user_id, subscription_id, start_date, end_date, status, created_at)
+                        VALUES (?, ?, ?, ?, 'active', NOW())
+                    ");
+                    $stmt->execute([$user_id, $data['subscription_id'], $start_date, $end_date]);
+                    
+                    // Update hotel subscription status
+                    $status = ($subscription['type'] === 'trial') ? 'trial' : 'active';
+                    $stmt = $this->db->prepare("
+                        UPDATE hotels 
+                        SET subscription_status = ?,
+                            subscription_start_date = ?,
+                            subscription_end_date = ?
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([$status, $start_date, $end_date, $hotel_id]);
+                }
+            }
+            
+            $this->db->commit();
+            
+            flash('success', '¡Registro exitoso! Tu hotel ha sido creado y tu periodo de prueba está activo. Por favor inicia sesión.', 'success');
             redirect('auth/login');
-        } else {
-            flash('error', 'Error al crear la cuenta', 'danger');
+            
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            flash('error', 'Error al crear la cuenta: ' . $e->getMessage(), 'danger');
             redirect('auth/register');
         }
     }
