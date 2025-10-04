@@ -39,6 +39,10 @@
                         <br><small class="text-muted"><?= e(getRoleLabel(currentUser()['role'])) ?></small>
                     </li>
                     <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="<?= BASE_URL ?>/profile">
+                        <i class="bi bi-person-circle"></i> Mi Perfil
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
                     <li><a class="dropdown-item" href="<?= BASE_URL ?>/auth/logout">
                         <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
                     </a></li>
@@ -61,16 +65,22 @@
                 
                 <?php if (hasRole(['superadmin'])): ?>
                 <!-- Superadmin Menu -->
-                <a class="nav-link" href="<?= BASE_URL ?>/hotels">
+                <a class="nav-link" href="<?= BASE_URL ?>/superadmin/hotels">
                     <i class="bi bi-building"></i> Hoteles
                 </a>
-                <a class="nav-link" href="<?= BASE_URL ?>/subscriptions">
+                <a class="nav-link" href="<?= BASE_URL ?>/superadmin/subscriptions">
                     <i class="bi bi-credit-card"></i> Suscripciones
                 </a>
-                <a class="nav-link" href="<?= BASE_URL ?>/users">
+                <a class="nav-link" href="<?= BASE_URL ?>/superadmin/users">
                     <i class="bi bi-people"></i> Usuarios
                 </a>
-                <a class="nav-link" href="<?= BASE_URL ?>/settings">
+                <a class="nav-link" href="<?= BASE_URL ?>/superadmin/payments">
+                    <i class="bi bi-currency-dollar"></i> Registro de Pagos
+                </a>
+                <a class="nav-link" href="<?= BASE_URL ?>/superadmin/loyalty">
+                    <i class="bi bi-star"></i> Programa de Lealtad
+                </a>
+                <a class="nav-link" href="<?= BASE_URL ?>/superadmin/settings">
                     <i class="bi bi-gear"></i> Configuración Global
                 </a>
                 <?php endif; ?>

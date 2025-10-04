@@ -325,7 +325,11 @@
                 labels: occupancyData.map(d => d.date),
                 datasets: [{
                     label: 'Ocupación (%)',
-                    data: occupancyData.map(d => (d.occupied / d.total_rooms * 100).toFixed(2)),
+                    data: occupancyData.map(d => {
+                        const totalRooms = parseInt(d.total_rooms) || 1;
+                        const occupied = parseInt(d.occupied) || 0;
+                        return (occupied / totalRooms * 100).toFixed(2);
+                    }),
                     borderColor: 'rgb(54, 162, 235)',
                     backgroundColor: 'rgba(54, 162, 235, 0.2)',
                     tension: 0.1

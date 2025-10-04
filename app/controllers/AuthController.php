@@ -19,8 +19,12 @@ class AuthController extends BaseController {
             redirect('dashboard');
         }
         
+        // Get trial days from settings
+        $trialDays = getSetting('trial_days', 30);
+        
         $this->view('auth/login', [
-            'title' => 'Iniciar Sesión'
+            'title' => 'Iniciar Sesión',
+            'trialDays' => $trialDays
         ]);
     }
     
@@ -34,6 +38,7 @@ class AuthController extends BaseController {
         
         $email = sanitize($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
+        $acceptTerms = isset($_POST['accept_terms']) && $_POST['accept_terms'];
         
         // Validation
         $errors = [];
@@ -46,6 +51,10 @@ class AuthController extends BaseController {
         
         if (empty($password)) {
             $errors[] = 'La contraseña es requerida';
+        }
+        
+        if (!$acceptTerms) {
+            $errors[] = 'Debes aceptar los términos y condiciones';
         }
         
         if (!empty($errors)) {

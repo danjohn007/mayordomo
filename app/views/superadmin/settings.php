@@ -251,6 +251,42 @@
                 </div>
                 <?php endif; ?>
                 
+                <!-- Bank Accounts Configuration -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-bank"></i> Cuentas Bancarias para Depósitos</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Información de Cuentas Bancarias</label>
+                            <textarea name="setting_bank_accounts_info" class="form-control" rows="8" 
+                                      placeholder="Ingresa la información de las cuentas bancarias (una por línea)&#10;Ejemplo:&#10;BBVA - Cuenta: 123456789 - Titular: MajorBot S.A. de C.V.&#10;Santander - CLABE: 014180123456789012 - Titular: MajorBot S.A. de C.V."><?php 
+                            $bankInfo = getSetting('bank_accounts_info', '');
+                            echo e($bankInfo);
+                            ?></textarea>
+                            <small class="text-muted">Ingresa los datos de las cuentas bancarias disponibles para depósitos</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Terms and Conditions -->
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0"><i class="bi bi-file-text"></i> Términos y Condiciones</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Términos y Condiciones del Sistema</label>
+                            <textarea name="setting_terms_and_conditions" class="form-control" rows="15" 
+                                      placeholder="Ingresa los términos y condiciones que los usuarios deben aceptar al iniciar sesión o registrarse..."><?php 
+                            $terms = getSetting('terms_and_conditions', '');
+                            echo e($terms);
+                            ?></textarea>
+                            <small class="text-muted">Estos términos se mostrarán al usuario en el login y registro</small>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Save Button -->
                 <div class="card">
                     <div class="card-body text-center">
