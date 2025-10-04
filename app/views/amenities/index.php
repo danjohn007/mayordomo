@@ -1,0 +1,59 @@
+<?php require_once APP_PATH . '/views/layouts/header.php'; ?>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-spa"></i> Amenidades</h1>
+    <?php if (hasRole(['admin', 'manager'])): ?>
+        <a href="<?= BASE_URL ?>/amenities/create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Nueva Amenidad</a>
+    <?php endif; ?>
+</div>
+
+<?php if ($flash = flash('success')) echo '<div class="alert alert-' . $flash['type'] . ' alert-dismissible fade show">' . $flash['message'] . '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>'; ?>
+
+<div class="card">
+    <div class="card-body">
+        <?php if (!empty($amenities)): ?>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Precio</th>
+                            <th>Capacidad</th>
+                            <th>Horario</th>
+                            <th>Disponible</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($amenities as $amenity): ?>
+                            <tr>
+                                <td><strong><?= e($amenity['name']) ?></strong></td>
+                                <td><?= ucfirst($amenity['category']) ?></td>
+                                <td><?= formatCurrency($amenity['price']) ?></td>
+                                <td><?= $amenity['capacity'] ? e($amenity['capacity']) : '-' ?></td>
+                                <td><?= $amenity['opening_time'] ? substr($amenity['opening_time'], 0, 5) . ' - ' . substr($amenity['closing_time'], 0, 5) : '-' ?></td>
+                                <td><?= $amenity['is_available'] ? '<span class="badge bg-success">Sí</span>' : '<span class="badge bg-secondary">No</span>' ?></td>
+                                <td class="action-buttons">
+                                    <?php if (hasRole(['admin', 'manager'])): ?>
+                                        <a href="<?= BASE_URL ?>/amenities/edit/<?= $amenity['id'] ?>" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
+                                        <form method="POST" action="<?= BASE_URL ?>/amenities/delete/<?= $amenity['id'] ?>" style="display: inline-block;">
+                                            <button type="submit" class="btn btn-sm btn-danger btn-delete"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php else: ?>
+            <div class="empty-state">
+                <i class="bi bi-spa"></i>
+                <h4>No hay amenidades registradas</h4>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<?php require_once APP_PATH . '/views/layouts/footer.php'; ?>
