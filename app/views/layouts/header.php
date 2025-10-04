@@ -127,8 +127,8 @@
                 // Get subscription info for sidebar
                 global $db;
                 if (!isset($db)) {
-                    require_once APP_PATH . '/config/database.php';
-                    $db = getDBConnection();
+                    require_once CONFIG_PATH . '/database.php';
+                    $db = Database::getInstance()->getConnection();
                 }
                 $currentUser = currentUser();
                 $stmt = $db->prepare("
