@@ -56,13 +56,13 @@
                         </div>
                         
                         <?php 
-                        $trialDays = getSetting('trial_days', 30);
-                        if ($trialDays > 0): 
+                        $trialDaysDisplay = $trialDays ?? 30;
+                        if ($trialDaysDisplay > 0): 
                         ?>
                         <div class="alert alert-success mb-3 py-2">
                             <small>
                                 <i class="bi bi-gift"></i> 
-                                <strong>¡Prueba gratis por <?= $trialDays ?> días!</strong><br>
+                                <strong>¡Prueba gratis por <?= $trialDaysDisplay ?> días!</strong><br>
                                 Puedes usar MajorBot completamente gratis durante tu período de prueba.
                             </small>
                         </div>
