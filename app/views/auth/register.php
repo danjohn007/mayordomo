@@ -6,9 +6,9 @@
             <div class="card shadow-lg">
                 <div class="card-body p-5">
                     <div class="text-center mb-4">
-                        <i class="bi bi-person-plus text-primary" style="font-size: 3rem;"></i>
-                        <h2 class="mt-3">Crear Cuenta</h2>
-                        <p class="text-muted">Regístrate en MajorBot</p>
+                        <i class="bi bi-building text-primary" style="font-size: 3rem;"></i>
+                        <h2 class="mt-3">Registrar Hotel</h2>
+                        <p class="text-muted">Registro para Propietarios y Administradores de Hoteles</p>
                     </div>
                     
                     <?php if ($flash = flash('error')): ?>
@@ -19,6 +19,12 @@
                     <?php endif; ?>
                     
                     <form action="<?= BASE_URL ?>/auth/processRegister" method="POST">
+                        <div class="mb-3">
+                            <label for="hotel_name" class="form-label">Nombre del Hotel o Alojamiento *</label>
+                            <input type="text" class="form-control" id="hotel_name" name="hotel_name" required placeholder="Ej: Hotel Paradise">
+                            <small class="text-muted">Este registro es exclusivo para propietarios/administradores de hoteles</small>
+                        </div>
+                        
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="first_name" class="form-label">Nombre *</label>

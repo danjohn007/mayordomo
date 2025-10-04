@@ -43,6 +43,9 @@
                                 <option value="hostess">Hostess</option>
                                 <option value="manager">Gerente</option>
                                 <option value="admin">Administrador</option>
+                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin'): ?>
+                                <option value="superadmin">Superadministrador</option>
+                                <?php endif; ?>
                             </select>
                         </div>
                     </div>
