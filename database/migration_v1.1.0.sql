@@ -1,43 +1,39 @@
 -- ============================================================================
--- MajorBot Database Migration v1.0.0 to v1.1.0+
--- Migration for Phases 1-4: Reservations, Orders & Billing, Superadmin, Notifications & Reports
--- ============================================================================
--- IMPORTANT: This migration preserves all existing data and functionality
--- Execute this file after backing up your database
+-- MIGRACIÓN v1.1.0+ para aqh_mayordomo.sql (adaptado a tu estructura actual)
 -- ============================================================================
 
-USE majorbot_db;
+USE aqh_mayordomo;
 
 -- ============================================================================
 -- PHASE 1: RESERVATIONS MODULE
 -- ============================================================================
 
--- Enhance room_reservations table with email confirmation and additional fields
-ALTER TABLE room_reservations 
-    ADD COLUMN IF NOT EXISTS confirmation_code VARCHAR(50) UNIQUE AFTER status,
-    ADD COLUMN IF NOT EXISTS email_confirmed TINYINT(1) DEFAULT 0 AFTER confirmation_code,
-    ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMP NULL AFTER email_confirmed,
-    ADD COLUMN IF NOT EXISTS guest_name VARCHAR(200) AFTER guest_id,
-    ADD COLUMN IF NOT EXISTS guest_email VARCHAR(255) AFTER guest_name,
-    ADD COLUMN IF NOT EXISTS guest_phone VARCHAR(20) AFTER guest_email,
-    ADD COLUMN IF NOT EXISTS special_requests TEXT AFTER notes,
-    ADD COLUMN IF NOT EXISTS number_of_guests INT DEFAULT 1 AFTER special_requests,
-    ADD INDEX idx_confirmation (confirmation_code),
-    ADD INDEX idx_email_confirmed (email_confirmed);
+-- room_reservations: Nuevos campos y índices
+ALTER TABLE room_reservations
+  ADD COLUMN confirmation_code VARCHAR(50) UNIQUE AFTER status,
+  ADD COLUMN email_confirmed TINYINT(1) DEFAULT 0 AFTER confirmation_code,
+  ADD COLUMN confirmed_at TIMESTAMP NULL AFTER email_confirmed,
+  ADD COLUMN guest_name VARCHAR(200) AFTER guest_id,
+  ADD COLUMN guest_email VARCHAR(255) AFTER guest_name,
+  ADD COLUMN guest_phone VARCHAR(20) AFTER guest_email,
+  ADD COLUMN special_requests TEXT AFTER notes,
+  ADD COLUMN number_of_guests INT DEFAULT 1 AFTER special_requests,
+  ADD INDEX idx_confirmation (confirmation_code),
+  ADD INDEX idx_email_confirmed (email_confirmed);
 
--- Enhance table_reservations with email confirmation
+-- table_reservations: Nuevos campos y índices
 ALTER TABLE table_reservations
-    ADD COLUMN IF NOT EXISTS confirmation_code VARCHAR(50) UNIQUE AFTER status,
-    ADD COLUMN IF NOT EXISTS email_confirmed TINYINT(1) DEFAULT 0 AFTER confirmation_code,
-    ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMP NULL AFTER email_confirmed,
-    ADD COLUMN IF NOT EXISTS guest_name VARCHAR(200) AFTER guest_id,
-    ADD COLUMN IF NOT EXISTS guest_email VARCHAR(255) AFTER guest_name,
-    ADD COLUMN IF NOT EXISTS guest_phone VARCHAR(20) AFTER guest_email,
-    ADD COLUMN IF NOT EXISTS special_requests TEXT AFTER notes,
-    ADD INDEX idx_confirmation (confirmation_code),
-    ADD INDEX idx_email_confirmed (email_confirmed);
+  ADD COLUMN confirmation_code VARCHAR(50) UNIQUE AFTER status,
+  ADD COLUMN email_confirmed TINYINT(1) DEFAULT 0 AFTER confirmation_code,
+  ADD COLUMN confirmed_at TIMESTAMP NULL AFTER email_confirmed,
+  ADD COLUMN guest_name VARCHAR(200) AFTER guest_id,
+  ADD COLUMN guest_email VARCHAR(255) AFTER guest_name,
+  ADD COLUMN guest_phone VARCHAR(20) AFTER guest_email,
+  ADD COLUMN special_requests TEXT AFTER notes,
+  ADD INDEX idx_confirmation (confirmation_code),
+  ADD INDEX idx_email_confirmed (email_confirmed);
 
--- Email notifications log
+-- email_notifications
 CREATE TABLE IF NOT EXISTS email_notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     recipient_email VARCHAR(255) NOT NULL,
@@ -56,7 +52,7 @@ CREATE TABLE IF NOT EXISTS email_notifications (
     INDEX idx_related (related_type, related_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Calendar availability cache (for performance)
+-- availability_calendar
 CREATE TABLE IF NOT EXISTS availability_calendar (
     id INT AUTO_INCREMENT PRIMARY KEY,
     hotel_id INT NOT NULL,
@@ -78,7 +74,7 @@ CREATE TABLE IF NOT EXISTS availability_calendar (
 -- PHASE 2: ORDERS & BILLING MODULE
 -- ============================================================================
 
--- Shopping cart table
+-- shopping_cart
 CREATE TABLE IF NOT EXISTS shopping_cart (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -92,7 +88,7 @@ CREATE TABLE IF NOT EXISTS shopping_cart (
     INDEX idx_session (session_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Cart items
+-- cart_items
 CREATE TABLE IF NOT EXISTS cart_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
     cart_id INT NOT NULL,
@@ -107,18 +103,18 @@ CREATE TABLE IF NOT EXISTS cart_items (
     INDEX idx_cart (cart_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Enhance orders table with payment information
+-- orders: Nuevos campos y índices
 ALTER TABLE orders
-    ADD COLUMN IF NOT EXISTS payment_method ENUM('cash', 'credit_card', 'debit_card', 'stripe', 'paypal', 'room_charge', 'complimentary') AFTER total_amount,
-    ADD COLUMN IF NOT EXISTS payment_status ENUM('pending', 'processing', 'completed', 'failed', 'refunded') DEFAULT 'pending' AFTER payment_method,
-    ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP NULL AFTER payment_status,
-    ADD COLUMN IF NOT EXISTS tax_amount DECIMAL(10, 2) DEFAULT 0 AFTER total_amount,
-    ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(10, 2) DEFAULT 0 AFTER tax_amount,
-    ADD COLUMN IF NOT EXISTS tip_amount DECIMAL(10, 2) DEFAULT 0 AFTER discount_amount,
-    ADD COLUMN IF NOT EXISTS subtotal DECIMAL(10, 2) AFTER tip_amount,
-    ADD INDEX idx_payment_status (payment_status);
+  ADD COLUMN payment_method ENUM('cash', 'credit_card', 'debit_card', 'stripe', 'paypal', 'room_charge', 'complimentary') AFTER total_amount,
+  ADD COLUMN payment_status ENUM('pending', 'processing', 'completed', 'failed', 'refunded') DEFAULT 'pending' AFTER payment_method,
+  ADD COLUMN paid_at TIMESTAMP NULL AFTER payment_status,
+  ADD COLUMN tax_amount DECIMAL(10, 2) DEFAULT 0 AFTER total_amount,
+  ADD COLUMN discount_amount DECIMAL(10, 2) DEFAULT 0 AFTER tax_amount,
+  ADD COLUMN tip_amount DECIMAL(10, 2) DEFAULT 0 AFTER discount_amount,
+  ADD COLUMN subtotal DECIMAL(10, 2) AFTER tip_amount,
+  ADD INDEX idx_payment_status (payment_status);
 
--- Payment transactions
+-- payment_transactions
 CREATE TABLE IF NOT EXISTS payment_transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT NULL,
@@ -143,7 +139,7 @@ CREATE TABLE IF NOT EXISTS payment_transactions (
     INDEX idx_transaction (transaction_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Invoices table
+-- invoices
 CREATE TABLE IF NOT EXISTS invoices (
     id INT AUTO_INCREMENT PRIMARY KEY,
     invoice_number VARCHAR(50) UNIQUE NOT NULL,
@@ -178,7 +174,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     INDEX idx_dates (invoice_date, due_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Invoice line items
+-- invoice_items
 CREATE TABLE IF NOT EXISTS invoice_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
     invoice_id INT NOT NULL,
@@ -197,26 +193,26 @@ CREATE TABLE IF NOT EXISTS invoice_items (
 -- PHASE 3: SUPERADMIN & MULTI-HOTEL MODULE
 -- ============================================================================
 
--- Enhance hotels table for multi-hotel management
+-- hotels: Nuevos campos y índices
 ALTER TABLE hotels
-    ADD COLUMN IF NOT EXISTS owner_id INT NULL AFTER id,
-    ADD COLUMN IF NOT EXISTS subscription_plan_id INT NULL AFTER owner_id,
-    ADD COLUMN IF NOT EXISTS subscription_status ENUM('trial', 'active', 'suspended', 'cancelled') DEFAULT 'trial' AFTER subscription_plan_id,
-    ADD COLUMN IF NOT EXISTS subscription_start_date DATE NULL AFTER subscription_status,
-    ADD COLUMN IF NOT EXISTS subscription_end_date DATE NULL AFTER subscription_start_date,
-    ADD COLUMN IF NOT EXISTS max_rooms INT DEFAULT 50 AFTER description,
-    ADD COLUMN IF NOT EXISTS max_tables INT DEFAULT 30 AFTER max_rooms,
-    ADD COLUMN IF NOT EXISTS max_staff INT DEFAULT 20 AFTER max_tables,
-    ADD COLUMN IF NOT EXISTS features JSON AFTER max_staff,
-    ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'America/Mexico_City' AFTER features,
-    ADD COLUMN IF NOT EXISTS currency VARCHAR(3) DEFAULT 'MXN' AFTER timezone,
-    ADD COLUMN IF NOT EXISTS logo_url VARCHAR(255) AFTER currency,
-    ADD COLUMN IF NOT EXISTS website VARCHAR(255) AFTER logo_url,
-    ADD FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL,
-    ADD INDEX idx_owner (owner_id),
-    ADD INDEX idx_subscription (subscription_status);
+  ADD COLUMN owner_id INT NULL AFTER id,
+  ADD COLUMN subscription_plan_id INT NULL AFTER owner_id,
+  ADD COLUMN subscription_status ENUM('trial', 'active', 'suspended', 'cancelled') DEFAULT 'trial' AFTER subscription_plan_id,
+  ADD COLUMN subscription_start_date DATE NULL AFTER subscription_status,
+  ADD COLUMN subscription_end_date DATE NULL AFTER subscription_start_date,
+  ADD COLUMN max_rooms INT DEFAULT 50 AFTER description,
+  ADD COLUMN max_tables INT DEFAULT 30 AFTER max_rooms,
+  ADD COLUMN max_staff INT DEFAULT 20 AFTER max_tables,
+  ADD COLUMN features JSON AFTER max_staff,
+  ADD COLUMN timezone VARCHAR(50) DEFAULT 'America/Mexico_City' AFTER features,
+  ADD COLUMN currency VARCHAR(3) DEFAULT 'MXN' AFTER timezone,
+  ADD COLUMN logo_url VARCHAR(255) AFTER currency,
+  ADD COLUMN website VARCHAR(255) AFTER logo_url,
+  ADD FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL,
+  ADD INDEX idx_owner (owner_id),
+  ADD INDEX idx_subscription (subscription_status);
 
--- Hotel settings (additional configurations)
+-- hotel_settings
 CREATE TABLE IF NOT EXISTS hotel_settings (
     id INT AUTO_INCREMENT PRIMARY KEY,
     hotel_id INT NOT NULL,
@@ -231,7 +227,7 @@ CREATE TABLE IF NOT EXISTS hotel_settings (
     INDEX idx_category (category)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Subscription plans (enhanced)
+-- subscription_plans
 CREATE TABLE IF NOT EXISTS subscription_plans (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -253,7 +249,7 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
     INDEX idx_active (is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Hotel subscriptions (tracking)
+-- hotel_subscriptions
 CREATE TABLE IF NOT EXISTS hotel_subscriptions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     hotel_id INT NOT NULL,
@@ -276,7 +272,7 @@ CREATE TABLE IF NOT EXISTS hotel_subscriptions (
     INDEX idx_dates (start_date, end_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Global statistics (cached aggregations)
+-- global_statistics
 CREATE TABLE IF NOT EXISTS global_statistics (
     id INT AUTO_INCREMENT PRIMARY KEY,
     stat_date DATE NOT NULL,
@@ -299,7 +295,7 @@ CREATE TABLE IF NOT EXISTS global_statistics (
     INDEX idx_type (stat_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Hotel statistics (per hotel metrics)
+-- hotel_statistics
 CREATE TABLE IF NOT EXISTS hotel_statistics (
     id INT AUTO_INCREMENT PRIMARY KEY,
     hotel_id INT NOT NULL,
@@ -324,7 +320,7 @@ CREATE TABLE IF NOT EXISTS hotel_statistics (
     INDEX idx_type (stat_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- System activity log (for superadmin monitoring)
+-- activity_log
 CREATE TABLE IF NOT EXISTS activity_log (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NULL,
@@ -350,7 +346,7 @@ CREATE TABLE IF NOT EXISTS activity_log (
 -- PHASE 4: NOTIFICATIONS & REPORTS MODULE
 -- ============================================================================
 
--- Real-time notifications
+-- notifications
 CREATE TABLE IF NOT EXISTS notifications (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -375,7 +371,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     INDEX idx_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Notification preferences
+-- notification_preferences
 CREATE TABLE IF NOT EXISTS notification_preferences (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -390,7 +386,7 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
     INDEX idx_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Reports (saved and scheduled)
+-- reports
 CREATE TABLE IF NOT EXISTS reports (
     id INT AUTO_INCREMENT PRIMARY KEY,
     hotel_id INT NULL,
@@ -414,7 +410,7 @@ CREATE TABLE IF NOT EXISTS reports (
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Report generations (history)
+-- report_generations
 CREATE TABLE IF NOT EXISTS report_generations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     report_id INT NOT NULL,
@@ -428,7 +424,7 @@ CREATE TABLE IF NOT EXISTS report_generations (
     INDEX idx_generated (generated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Export queue (for async report generation)
+-- export_queue
 CREATE TABLE IF NOT EXISTS export_queue (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -452,233 +448,23 @@ CREATE TABLE IF NOT EXISTS export_queue (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- ADDITIONAL ENHANCEMENTS & INDEXES
+-- INDICES ADICIONALES
 -- ============================================================================
 
--- Add indexes for better query performance on existing tables if not present
-ALTER TABLE users ADD INDEX IF NOT EXISTS idx_created (created_at);
-ALTER TABLE rooms ADD INDEX IF NOT EXISTS idx_type (type);
-ALTER TABLE rooms ADD INDEX IF NOT EXISTS idx_price (price);
-ALTER TABLE dishes ADD INDEX IF NOT EXISTS idx_price (price);
-ALTER TABLE orders ADD INDEX IF NOT EXISTS idx_created (created_at);
-ALTER TABLE service_requests ADD INDEX IF NOT EXISTS idx_created (requested_at);
+ALTER TABLE users ADD INDEX idx_created (created_at);
+ALTER TABLE rooms ADD INDEX idx_type (type);
+ALTER TABLE rooms ADD INDEX idx_price (price);
+ALTER TABLE dishes ADD INDEX idx_price (price);
+ALTER TABLE orders ADD INDEX idx_created (created_at);
+ALTER TABLE service_requests ADD INDEX idx_created (requested_at);
 
 -- ============================================================================
--- SAMPLE DATA INSERTS FOR NEW FEATURES
+-- FINALIZACIÓN
 -- ============================================================================
+-- Puedes agregar los triggers y procedimientos si tu MySQL lo permite (no todos soportan IF NOT EXISTS en triggers, así que revisa antes de incluirlos).
 
--- Insert default subscription plans
-INSERT INTO subscription_plans (name, slug, description, price, billing_cycle, trial_days, max_hotels, max_rooms_per_hotel, max_tables_per_hotel, max_staff_per_hotel, features, is_active, sort_order) 
-VALUES 
-    ('Trial', 'trial', 'Free trial plan for 30 days', 0.00, 'monthly', 30, 1, 10, 10, 5, '["Basic features", "Email support", "1 hotel"]', 1, 1),
-    ('Básico', 'basic', 'Perfect for small hotels', 499.00, 'monthly', 14, 1, 50, 30, 20, '["Up to 50 rooms", "Up to 30 tables", "Email support", "Basic reports"]', 1, 2),
-    ('Profesional', 'professional', 'For growing businesses', 999.00, 'monthly', 14, 3, 100, 50, 50, '["Up to 3 hotels", "Up to 100 rooms each", "Priority support", "Advanced reports", "Payment integrations"]', 1, 3),
-    ('Enterprise', 'enterprise', 'Unlimited hotels and features', 2499.00, 'monthly', 14, 999, 500, 200, 200, '["Unlimited hotels", "Up to 500 rooms each", "24/7 support", "Custom reports", "API access", "White label"]', 1, 4)
-ON DUPLICATE KEY UPDATE name=VALUES(name);
-
--- Insert default notification preferences for existing users
-INSERT INTO notification_preferences (user_id, notification_type, enabled, email_enabled, push_enabled, sms_enabled)
-SELECT id, 'reservation', 1, 1, 1, 0 FROM users
-WHERE NOT EXISTS (SELECT 1 FROM notification_preferences WHERE user_id = users.id AND notification_type = 'reservation');
-
-INSERT INTO notification_preferences (user_id, notification_type, enabled, email_enabled, push_enabled, sms_enabled)
-SELECT id, 'order', 1, 1, 1, 0 FROM users
-WHERE NOT EXISTS (SELECT 1 FROM notification_preferences WHERE user_id = users.id AND notification_type = 'order');
-
-INSERT INTO notification_preferences (user_id, notification_type, enabled, email_enabled, push_enabled, sms_enabled)
-SELECT id, 'service', 1, 1, 1, 0 FROM users
-WHERE NOT EXISTS (SELECT 1 FROM notification_preferences WHERE user_id = users.id AND notification_type = 'service');
-
--- ============================================================================
--- VIEWS FOR COMMON QUERIES (Optional but recommended for performance)
--- ============================================================================
-
--- View for current room availability
-CREATE OR REPLACE VIEW v_room_availability AS
-SELECT 
-    r.id AS room_id,
-    r.hotel_id,
-    r.room_number,
-    r.type,
-    r.capacity,
-    r.price,
-    r.status,
-    r.floor,
-    COUNT(DISTINCT rr.id) AS active_reservations,
-    CASE 
-        WHEN r.status = 'maintenance' THEN 0
-        WHEN r.status = 'occupied' THEN 0
-        WHEN EXISTS (
-            SELECT 1 FROM room_reservations rr2 
-            WHERE rr2.room_id = r.id 
-            AND rr2.status IN ('confirmed', 'checked_in')
-            AND CURDATE() BETWEEN rr2.check_in AND rr2.check_out
-        ) THEN 0
-        ELSE 1
-    END AS is_available
-FROM rooms r
-LEFT JOIN room_reservations rr ON r.id = rr.room_id 
-    AND rr.status IN ('confirmed', 'checked_in')
-    AND CURDATE() BETWEEN rr.check_in AND rr.check_out
-GROUP BY r.id;
-
--- View for daily revenue
-CREATE OR REPLACE VIEW v_daily_revenue AS
-SELECT 
-    hotel_id,
-    DATE(created_at) AS revenue_date,
-    SUM(CASE WHEN status IN ('completed', 'delivered') THEN total_amount ELSE 0 END) AS total_revenue,
-    COUNT(*) AS total_orders,
-    COUNT(CASE WHEN status IN ('completed', 'delivered') THEN 1 END) AS completed_orders
-FROM orders
-GROUP BY hotel_id, DATE(created_at);
-
--- View for occupancy rate
-CREATE OR REPLACE VIEW v_occupancy_rate AS
-SELECT 
-    h.id AS hotel_id,
-    h.name AS hotel_name,
-    COUNT(DISTINCT r.id) AS total_rooms,
-    COUNT(DISTINCT CASE WHEN r.status = 'occupied' THEN r.id END) AS occupied_rooms,
-    COUNT(DISTINCT CASE WHEN r.status = 'available' THEN r.id END) AS available_rooms,
-    ROUND((COUNT(DISTINCT CASE WHEN r.status = 'occupied' THEN r.id END) / COUNT(DISTINCT r.id) * 100), 2) AS occupancy_percentage
-FROM hotels h
-LEFT JOIN rooms r ON h.id = r.hotel_id
-GROUP BY h.id;
-
--- ============================================================================
--- TRIGGERS FOR AUTOMATIC UPDATES (Optional but recommended)
--- ============================================================================
-
-DELIMITER $$
-
--- Trigger to generate confirmation code for room reservations
-CREATE TRIGGER IF NOT EXISTS trg_room_reservation_confirmation
-BEFORE INSERT ON room_reservations
-FOR EACH ROW
-BEGIN
-    IF NEW.confirmation_code IS NULL OR NEW.confirmation_code = '' THEN
-        SET NEW.confirmation_code = CONCAT('RR', DATE_FORMAT(NOW(), '%Y%m%d'), LPAD(FLOOR(RAND() * 99999), 5, '0'));
-    END IF;
-END$$
-
--- Trigger to generate confirmation code for table reservations
-CREATE TRIGGER IF NOT EXISTS trg_table_reservation_confirmation
-BEFORE INSERT ON table_reservations
-FOR EACH ROW
-BEGIN
-    IF NEW.confirmation_code IS NULL OR NEW.confirmation_code = '' THEN
-        SET NEW.confirmation_code = CONCAT('TR', DATE_FORMAT(NOW(), '%Y%m%d'), LPAD(FLOOR(RAND() * 99999), 5, '0'));
-    END IF;
-END$$
-
--- Trigger to generate invoice number
-CREATE TRIGGER IF NOT EXISTS trg_invoice_number
-BEFORE INSERT ON invoices
-FOR EACH ROW
-BEGIN
-    IF NEW.invoice_number IS NULL OR NEW.invoice_number = '' THEN
-        SET NEW.invoice_number = CONCAT('INV-', DATE_FORMAT(NOW(), '%Y%m'), '-', LPAD(FLOOR(RAND() * 9999), 4, '0'));
-    END IF;
-END$$
-
--- Trigger to update order subtotal when payment info is added
-CREATE TRIGGER IF NOT EXISTS trg_order_subtotal
-BEFORE UPDATE ON orders
-FOR EACH ROW
-BEGIN
-    IF NEW.tax_amount IS NOT NULL OR NEW.discount_amount IS NOT NULL OR NEW.tip_amount IS NOT NULL THEN
-        SET NEW.subtotal = NEW.total_amount - COALESCE(NEW.tax_amount, 0) - COALESCE(NEW.tip_amount, 0) + COALESCE(NEW.discount_amount, 0);
-    END IF;
-END$$
-
-DELIMITER ;
-
--- ============================================================================
--- STORED PROCEDURES FOR COMMON OPERATIONS (Optional)
--- ============================================================================
-
-DELIMITER $$
-
--- Procedure to check room availability for a date range
-CREATE PROCEDURE IF NOT EXISTS sp_check_room_availability(
-    IN p_hotel_id INT,
-    IN p_check_in DATE,
-    IN p_check_out DATE
-)
-BEGIN
-    SELECT 
-        r.id,
-        r.room_number,
-        r.type,
-        r.capacity,
-        r.price,
-        r.status,
-        CASE 
-            WHEN r.status NOT IN ('available', 'reserved') THEN 0
-            WHEN EXISTS (
-                SELECT 1 FROM room_reservations rr
-                WHERE rr.room_id = r.id
-                AND rr.status IN ('confirmed', 'checked_in')
-                AND (
-                    (p_check_in BETWEEN rr.check_in AND rr.check_out) OR
-                    (p_check_out BETWEEN rr.check_in AND rr.check_out) OR
-                    (rr.check_in BETWEEN p_check_in AND p_check_out)
-                )
-            ) THEN 0
-            ELSE 1
-        END AS is_available
-    FROM rooms r
-    WHERE r.hotel_id = p_hotel_id
-    ORDER BY r.room_number;
-END$$
-
--- Procedure to calculate hotel occupancy rate
-CREATE PROCEDURE IF NOT EXISTS sp_calculate_occupancy(
-    IN p_hotel_id INT,
-    IN p_date DATE
-)
-BEGIN
-    SELECT 
-        COUNT(DISTINCT r.id) AS total_rooms,
-        COUNT(DISTINCT CASE 
-            WHEN r.status = 'occupied' OR EXISTS (
-                SELECT 1 FROM room_reservations rr
-                WHERE rr.room_id = r.id
-                AND rr.status IN ('confirmed', 'checked_in')
-                AND p_date BETWEEN rr.check_in AND rr.check_out
-            ) THEN r.id 
-        END) AS occupied_rooms,
-        ROUND((COUNT(DISTINCT CASE 
-            WHEN r.status = 'occupied' OR EXISTS (
-                SELECT 1 FROM room_reservations rr
-                WHERE rr.room_id = r.id
-                AND rr.status IN ('confirmed', 'checked_in')
-                AND p_date BETWEEN rr.check_in AND rr.check_out
-            ) THEN r.id 
-        END) / COUNT(DISTINCT r.id) * 100), 2) AS occupancy_rate
-    FROM rooms r
-    WHERE r.hotel_id = p_hotel_id;
-END$$
-
-DELIMITER ;
-
--- ============================================================================
--- MIGRATION COMPLETE
--- ============================================================================
-
--- Log migration completion
+-- Log de migración
 INSERT INTO activity_log (action, description, created_at)
-VALUES ('database_migration', 'Migration v1.0.0 to v1.1.0+ completed successfully', NOW());
+VALUES ('database_migration', 'Migración v1.0.0 a v1.1.0+ completada exitosamente', NOW());
 
--- ============================================================================
--- POST-MIGRATION NOTES
--- ============================================================================
--- 1. Update your application code to use the new tables and fields
--- 2. Configure email settings for notification system
--- 3. Set up payment gateway credentials (Stripe/PayPal)
--- 4. Review and adjust subscription plans pricing
--- 5. Test all new features in a staging environment first
--- 6. Create scheduled jobs for report generation and statistics updates
--- 7. Implement proper backup strategy for the enhanced database
 -- ============================================================================
