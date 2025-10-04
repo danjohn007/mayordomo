@@ -20,86 +20,97 @@
 </head>
 <body>
     <?php if (isLoggedIn()): ?>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-dark bg-primary">
         <div class="container-fluid">
-            <a class="navbar-brand" href="<?= BASE_URL ?>/dashboard">
+            <button class="btn btn-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu">
+                <i class="bi bi-list"></i>
+            </button>
+            <a class="navbar-brand mx-auto" href="<?= BASE_URL ?>/dashboard">
                 <i class="bi bi-building"></i> MajorBot
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= BASE_URL ?>/dashboard">
-                            <i class="bi bi-speedometer2"></i> Dashboard
-                        </a>
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                    <i class="bi bi-person-circle"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li class="dropdown-header">
+                        <?= e(currentUser()['first_name']) ?> <?= e(currentUser()['last_name']) ?>
+                        <br><small class="text-muted"><?= e(getRoleLabel(currentUser()['role'])) ?></small>
                     </li>
-                    
-                    <?php if (hasRole(['admin', 'manager', 'hostess'])): ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= BASE_URL ?>/rooms">
-                            <i class="bi bi-door-closed"></i> Habitaciones
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= BASE_URL ?>/tables">
-                            <i class="bi bi-table"></i> Mesas
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= BASE_URL ?>/dishes">
-                            <i class="bi bi-egg-fried"></i> Menú
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= BASE_URL ?>/amenities">
-                            <i class="bi bi-spa"></i> Amenidades
-                        </a>
-                    </li>
-                    <?php endif; ?>
-                    
-                    <?php if (hasRole(['hostess'])): ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= BASE_URL ?>/blocks">
-                            <i class="bi bi-lock"></i> Bloqueos
-                        </a>
-                    </li>
-                    <?php endif; ?>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= BASE_URL ?>/services">
-                            <i class="bi bi-bell"></i> Servicios
-                        </a>
-                    </li>
-                    
-                    <?php if (hasRole(['admin', 'manager'])): ?>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= BASE_URL ?>/users">
-                            <i class="bi bi-people"></i> Usuarios
-                        </a>
-                    </li>
-                    <?php endif; ?>
-                </ul>
-                
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle"></i> 
-                            <?= e(currentUser()['first_name']) ?>
-                            <span class="badge bg-light text-dark"><?= e(getRoleLabel(currentUser()['role'])) ?></span>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="<?= BASE_URL ?>/auth/logout">
-                                <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
-                            </a></li>
-                        </ul>
-                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="<?= BASE_URL ?>/auth/logout">
+                        <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                    </a></li>
                 </ul>
             </div>
         </div>
     </nav>
+
+    <!-- Sidebar Menu (Offcanvas) -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMenu">
+        <div class="offcanvas-header bg-primary text-white">
+            <h5 class="offcanvas-title"><i class="bi bi-building"></i> MajorBot</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body p-0">
+            <nav class="nav flex-column">
+                <a class="nav-link" href="<?= BASE_URL ?>/dashboard">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+                
+                <?php if (hasRole(['superadmin'])): ?>
+                <!-- Superadmin Menu -->
+                <a class="nav-link" href="<?= BASE_URL ?>/hotels">
+                    <i class="bi bi-building"></i> Hoteles
+                </a>
+                <a class="nav-link" href="<?= BASE_URL ?>/subscriptions">
+                    <i class="bi bi-credit-card"></i> Suscripciones
+                </a>
+                <a class="nav-link" href="<?= BASE_URL ?>/users">
+                    <i class="bi bi-people"></i> Usuarios
+                </a>
+                <a class="nav-link" href="<?= BASE_URL ?>/settings">
+                    <i class="bi bi-gear"></i> Configuración Global
+                </a>
+                <?php endif; ?>
+                
+                <?php if (hasRole(['admin', 'manager', 'hostess'])): ?>
+                <!-- Admin/Manager/Hostess Menu -->
+                <a class="nav-link" href="<?= BASE_URL ?>/rooms">
+                    <i class="bi bi-door-closed"></i> Habitaciones
+                </a>
+                <a class="nav-link" href="<?= BASE_URL ?>/tables">
+                    <i class="bi bi-table"></i> Mesas
+                </a>
+                <a class="nav-link" href="<?= BASE_URL ?>/dishes">
+                    <i class="bi bi-egg-fried"></i> Menú
+                </a>
+                <a class="nav-link" href="<?= BASE_URL ?>/amenities">
+                    <i class="bi bi-spa"></i> Amenidades
+                </a>
+                <?php endif; ?>
+                
+                <?php if (hasRole(['hostess'])): ?>
+                <a class="nav-link" href="<?= BASE_URL ?>/blocks">
+                    <i class="bi bi-lock"></i> Bloqueos
+                </a>
+                <?php endif; ?>
+                
+                <?php if (!hasRole(['superadmin'])): ?>
+                <a class="nav-link" href="<?= BASE_URL ?>/services">
+                    <i class="bi bi-bell"></i> Servicios
+                </a>
+                <?php endif; ?>
+                
+                <?php if (hasRole(['admin', 'manager'])): ?>
+                <a class="nav-link" href="<?= BASE_URL ?>/users">
+                    <i class="bi bi-people"></i> Usuarios
+                </a>
+                <?php endif; ?>
+            </nav>
+        </div>
+    </div>
     <?php endif; ?>
     
     <!-- Main Content -->

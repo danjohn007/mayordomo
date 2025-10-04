@@ -20,6 +20,30 @@ body {
     font-size: 1.5rem;
 }
 
+/* Sidebar Menu */
+.offcanvas {
+    width: 280px !important;
+}
+
+.offcanvas-body .nav-link {
+    padding: 1rem 1.5rem;
+    color: #212529;
+    border-bottom: 1px solid #f0f0f0;
+    transition: all 0.3s;
+}
+
+.offcanvas-body .nav-link:hover {
+    background-color: #f8f9fa;
+    color: var(--primary-color);
+    padding-left: 2rem;
+}
+
+.offcanvas-body .nav-link i {
+    margin-right: 0.75rem;
+    width: 20px;
+    text-align: center;
+}
+
 /* Cards */
 .card {
     border: none;

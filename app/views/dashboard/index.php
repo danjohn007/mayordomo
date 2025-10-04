@@ -223,6 +223,191 @@
         </div>
     </div>
 
+<?php elseif ($user['role'] === 'superadmin'): ?>
+    <!-- Superadmin Dashboard -->
+    <div class="row">
+        <!-- Total Hotels -->
+        <div class="col-md-3 mb-4">
+            <div class="card stats-card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Hoteles Totales</h6>
+                            <h2 class="mb-0"><?= $stats['total_hotels'] ?></h2>
+                        </div>
+                        <div class="stats-icon bg-white bg-opacity-25">
+                            <i class="bi bi-building"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Active Subscriptions -->
+        <div class="col-md-3 mb-4">
+            <div class="card stats-card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Suscripciones Activas</h6>
+                            <h2 class="mb-0"><?= $stats['active_subscriptions'] ?></h2>
+                        </div>
+                        <div class="stats-icon bg-white bg-opacity-25">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Total Users -->
+        <div class="col-md-3 mb-4">
+            <div class="card stats-card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Usuarios Totales</h6>
+                            <h2 class="mb-0"><?= $stats['total_users'] ?></h2>
+                        </div>
+                        <div class="stats-icon bg-white bg-opacity-25">
+                            <i class="bi bi-people"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Monthly Revenue -->
+        <div class="col-md-3 mb-4">
+            <div class="card stats-card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Ingresos del Mes</h6>
+                            <h2 class="mb-0"><?= formatCurrency($stats['monthly_revenue']) ?></h2>
+                        </div>
+                        <div class="stats-icon bg-white bg-opacity-25">
+                            <i class="bi bi-currency-dollar"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Recent Hotels -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-building"></i> Hoteles Recientes</h5>
+                </div>
+                <div class="card-body">
+                    <?php if (!empty($stats['recent_hotels'])): ?>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Hotel</th>
+                                        <th>Propietario</th>
+                                        <th>Fecha</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($stats['recent_hotels'] as $hotel): ?>
+                                        <tr>
+                                            <td><?= e($hotel['name']) ?></td>
+                                            <td>
+                                                <?= e($hotel['first_name'] ?? 'N/A') ?> <?= e($hotel['last_name'] ?? '') ?>
+                                                <?php if ($hotel['email']): ?>
+                                                    <br><small class="text-muted"><?= e($hotel['email']) ?></small>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td><?= formatDate($hotel['created_at']) ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php else: ?>
+                        <p class="text-muted mb-0">No hay hoteles registrados</p>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Subscription Distribution -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Distribución de Suscripciones</h5>
+                </div>
+                <div class="card-body">
+                    <?php if (!empty($stats['subscription_distribution'])): ?>
+                        <?php foreach ($stats['subscription_distribution'] as $sub): ?>
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span><?= e($sub['name']) ?></span>
+                                    <strong><?= $sub['count'] ?> suscripciones</strong>
+                                </div>
+                                <div class="progress" style="height: 25px;">
+                                    <?php 
+                                    $total = array_sum(array_column($stats['subscription_distribution'], 'count'));
+                                    $percentage = $total > 0 ? ($sub['count'] / $total * 100) : 0;
+                                    ?>
+                                    <div class="progress-bar bg-primary" style="width: <?= $percentage ?>%">
+                                        <?= round($percentage) ?>%
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <p class="text-muted mb-0">No hay suscripciones activas</p>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Revenue Trend -->
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-graph-up"></i> Tendencia de Ingresos (Últimos 6 Meses)</h5>
+                </div>
+                <div class="card-body">
+                    <?php if (!empty($stats['revenue_trend'])): ?>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Mes</th>
+                                        <th>Ingresos</th>
+                                        <th>Suscripciones</th>
+                                        <th>Promedio</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($stats['revenue_trend'] as $trend): ?>
+                                        <tr>
+                                            <td><?= e($trend['month']) ?></td>
+                                            <td><?= formatCurrency($trend['revenue']) ?></td>
+                                            <td><?= $trend['subscriptions'] ?></td>
+                                            <td><?= formatCurrency($trend['subscriptions'] > 0 ? $trend['revenue'] / $trend['subscriptions'] : 0) ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php else: ?>
+                        <p class="text-muted mb-0">No hay datos de ingresos disponibles</p>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <?php elseif ($user['role'] === 'collaborator'): ?>
     <!-- Collaborator Dashboard -->
     <div class="row">

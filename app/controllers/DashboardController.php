@@ -13,6 +13,9 @@ class DashboardController extends BaseController {
         
         // Get stats based on role
         switch ($user['role']) {
+            case 'superadmin':
+                $stats = $this->getSuperadminStats();
+                break;
             case 'admin':
             case 'manager':
                 $stats = $this->getAdminStats($user['hotel_id']);
@@ -33,6 +36,67 @@ class DashboardController extends BaseController {
             'stats' => $stats,
             'user' => $user
         ]);
+    }
+    
+    private function getSuperadminStats() {
+        $stats = [];
+        
+        // Total hotels
+        $stmt = $this->db->query("SELECT COUNT(*) as count FROM hotels");
+        $stats['total_hotels'] = $stmt->fetch()['count'];
+        
+        // Active subscriptions
+        $stmt = $this->db->query("SELECT COUNT(*) as count FROM user_subscriptions WHERE status = 'active'");
+        $stats['active_subscriptions'] = $stmt->fetch()['count'];
+        
+        // Total users
+        $stmt = $this->db->query("SELECT COUNT(*) as count FROM users");
+        $stats['total_users'] = $stmt->fetch()['count'];
+        
+        // Monthly revenue
+        $stmt = $this->db->query("
+            SELECT COALESCE(SUM(price), 0) as revenue 
+            FROM user_subscriptions 
+            WHERE status = 'active' 
+            AND MONTH(start_date) = MONTH(CURRENT_DATE())
+            AND YEAR(start_date) = YEAR(CURRENT_DATE())
+        ");
+        $stats['monthly_revenue'] = $stmt->fetch()['revenue'];
+        
+        // Recent hotels
+        $stmt = $this->db->query("
+            SELECT h.*, u.first_name, u.last_name, u.email 
+            FROM hotels h
+            LEFT JOIN users u ON h.owner_id = u.id
+            ORDER BY h.created_at DESC
+            LIMIT 5
+        ");
+        $stats['recent_hotels'] = $stmt->fetchAll();
+        
+        // Subscription distribution
+        $stmt = $this->db->query("
+            SELECT sp.name, COUNT(us.id) as count
+            FROM subscription_plans sp
+            LEFT JOIN user_subscriptions us ON sp.id = us.plan_id AND us.status = 'active'
+            GROUP BY sp.id, sp.name
+            ORDER BY sp.id
+        ");
+        $stats['subscription_distribution'] = $stmt->fetchAll();
+        
+        // Monthly revenue trend (last 6 months)
+        $stmt = $this->db->query("
+            SELECT 
+                DATE_FORMAT(start_date, '%Y-%m') as month,
+                SUM(price) as revenue,
+                COUNT(*) as subscriptions
+            FROM user_subscriptions
+            WHERE start_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH)
+            GROUP BY DATE_FORMAT(start_date, '%Y-%m')
+            ORDER BY month
+        ");
+        $stats['revenue_trend'] = $stmt->fetchAll();
+        
+        return $stats;
     }
     
     private function getAdminStats($hotelId) {
@@ -182,7 +246,10 @@ class DashboardController extends BaseController {
     }
     
     private function getGuestStats($userId) {
-        $stats = [];
+        $stats = [
+            'active_reservations' => 0,
+            'pending_requests' => 0
+        ];
         
         // Active reservations
         $stmt = $this->db->prepare("
@@ -191,7 +258,8 @@ class DashboardController extends BaseController {
             WHERE guest_id = ? AND status IN ('confirmed', 'checked_in')
         ");
         $stmt->execute([$userId]);
-        $stats['active_reservations'] = $stmt->fetch()['count'];
+        $result = $stmt->fetch();
+        $stats['active_reservations'] = $result ? $result['count'] : 0;
         
         // Pending requests
         $stmt = $this->db->prepare("
@@ -200,7 +268,8 @@ class DashboardController extends BaseController {
             WHERE guest_id = ? AND status IN ('pending', 'in_progress')
         ");
         $stmt->execute([$userId]);
-        $stats['pending_requests'] = $stmt->fetch()['count'];
+        $result = $stmt->fetch();
+        $stats['pending_requests'] = $result ? $result['count'] : 0;
         
         return $stats;
     }
