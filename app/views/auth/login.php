@@ -54,16 +54,6 @@
                     </form>
                 </div>
             </div>
-            
-            <div class="card mt-3">
-                <div class="card-body">
-                    <h6 class="card-title">Cuentas de Prueba</h6>
-                    <small class="text-muted d-block mb-2">Email: admin@hotelparadise.com | Contraseña: password123</small>
-                    <small class="text-muted d-block mb-2">Email: manager@hotelparadise.com | Contraseña: password123</small>
-                    <small class="text-muted d-block mb-2">Email: hostess@hotelparadise.com | Contraseña: password123</small>
-                    <small class="text-muted d-block">Email: guest@example.com | Contraseña: password123</small>
-                </div>
-            </div>
         </div>
     </div>
 </div>

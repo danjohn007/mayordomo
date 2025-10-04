@@ -13,6 +13,9 @@ class DashboardController extends BaseController {
         
         // Get stats based on role
         switch ($user['role']) {
+            case 'superadmin':
+                $stats = $this->getSuperadminStats();
+                break;
             case 'admin':
             case 'manager':
                 $stats = $this->getAdminStats($user['hotel_id']);
@@ -33,6 +36,133 @@ class DashboardController extends BaseController {
             'stats' => $stats,
             'user' => $user
         ]);
+    }
+    
+    private function getSuperadminStats() {
+        $stats = [];
+        
+        // Total hotels
+        $stmt = $this->db->query("SELECT COUNT(*) as count FROM hotels");
+        $stats['total_hotels'] = $stmt->fetch()['count'];
+        
+        // Check which subscription tables exist and use accordingly
+        $tables = $this->db->query("SHOW TABLES LIKE '%subscription%'")->fetchAll(\PDO::FETCH_COLUMN);
+        $hasSubscriptionPlans = in_array('subscription_plans', array_map(function($t) { return basename($t); }, $tables));
+        $hasHotelSubscriptions = in_array('hotel_subscriptions', array_map(function($t) { return basename($t); }, $tables));
+        $hasUserSubscriptions = in_array('user_subscriptions', array_map(function($t) { return basename($t); }, $tables));
+        
+        // Active subscriptions - try different tables based on availability
+        if ($hasHotelSubscriptions) {
+            $stmt = $this->db->query("SELECT COUNT(*) as count FROM hotel_subscriptions WHERE status IN ('trial', 'active')");
+        } elseif ($hasUserSubscriptions) {
+            $stmt = $this->db->query("SELECT COUNT(*) as count FROM user_subscriptions WHERE status = 'active'");
+        } else {
+            $stmt = $this->db->query("SELECT 0 as count");
+        }
+        $stats['active_subscriptions'] = $stmt->fetch()['count'];
+        
+        // Total users
+        $stmt = $this->db->query("SELECT COUNT(*) as count FROM users");
+        $stats['total_users'] = $stmt->fetch()['count'];
+        
+        // Monthly revenue - calculate based on available tables
+        if ($hasSubscriptionPlans && $hasHotelSubscriptions) {
+            $stmt = $this->db->query("
+                SELECT COALESCE(SUM(sp.price), 0) as revenue 
+                FROM hotel_subscriptions hs
+                JOIN subscription_plans sp ON hs.plan_id = sp.id
+                WHERE hs.status IN ('trial', 'active')
+                AND MONTH(hs.start_date) = MONTH(CURRENT_DATE())
+                AND YEAR(hs.start_date) = YEAR(CURRENT_DATE())
+            ");
+        } elseif ($hasUserSubscriptions) {
+            // Try to join with subscriptions table for price
+            $stmt = $this->db->query("
+                SELECT COALESCE(SUM(s.price), 0) as revenue 
+                FROM user_subscriptions us
+                LEFT JOIN subscriptions s ON us.subscription_id = s.id
+                WHERE us.status = 'active' 
+                AND MONTH(us.start_date) = MONTH(CURRENT_DATE())
+                AND YEAR(us.start_date) = YEAR(CURRENT_DATE())
+            ");
+        } else {
+            $stmt = $this->db->query("SELECT 0 as revenue");
+        }
+        $stats['monthly_revenue'] = $stmt->fetch()['revenue'];
+        
+        // Recent hotels - check if owner_id column exists
+        try {
+            $stmt = $this->db->query("
+                SELECT h.*, u.first_name, u.last_name, u.email 
+                FROM hotels h
+                LEFT JOIN users u ON h.owner_id = u.id
+                ORDER BY h.created_at DESC
+                LIMIT 5
+            ");
+            $stats['recent_hotels'] = $stmt->fetchAll();
+        } catch (\PDOException $e) {
+            // If owner_id doesn't exist, query without it
+            $stmt = $this->db->query("
+                SELECT * FROM hotels
+                ORDER BY created_at DESC
+                LIMIT 5
+            ");
+            $stats['recent_hotels'] = $stmt->fetchAll();
+        }
+        
+        // Subscription distribution - use available tables
+        if ($hasSubscriptionPlans && $hasHotelSubscriptions) {
+            $stmt = $this->db->query("
+                SELECT sp.name, COUNT(hs.id) as count
+                FROM subscription_plans sp
+                LEFT JOIN hotel_subscriptions hs ON sp.id = hs.plan_id AND hs.status IN ('trial', 'active')
+                GROUP BY sp.id, sp.name
+                ORDER BY sp.sort_order, sp.id
+            ");
+        } elseif ($hasUserSubscriptions) {
+            $stmt = $this->db->query("
+                SELECT s.name, COUNT(us.id) as count
+                FROM subscriptions s
+                LEFT JOIN user_subscriptions us ON s.id = us.subscription_id AND us.status = 'active'
+                GROUP BY s.id, s.name
+                ORDER BY s.id
+            ");
+        } else {
+            $stmt = $this->db->query("SELECT 'Sin datos' as name, 0 as count");
+        }
+        $stats['subscription_distribution'] = $stmt->fetchAll();
+        
+        // Monthly revenue trend (last 6 months)
+        if ($hasSubscriptionPlans && $hasHotelSubscriptions) {
+            $stmt = $this->db->query("
+                SELECT 
+                    DATE_FORMAT(hs.start_date, '%Y-%m') as month,
+                    SUM(sp.price) as revenue,
+                    COUNT(hs.id) as subscriptions
+                FROM hotel_subscriptions hs
+                JOIN subscription_plans sp ON hs.plan_id = sp.id
+                WHERE hs.start_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH)
+                GROUP BY DATE_FORMAT(hs.start_date, '%Y-%m')
+                ORDER BY month
+            ");
+        } elseif ($hasUserSubscriptions) {
+            $stmt = $this->db->query("
+                SELECT 
+                    DATE_FORMAT(us.start_date, '%Y-%m') as month,
+                    SUM(s.price) as revenue,
+                    COUNT(us.id) as subscriptions
+                FROM user_subscriptions us
+                LEFT JOIN subscriptions s ON us.subscription_id = s.id
+                WHERE us.start_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 6 MONTH)
+                GROUP BY DATE_FORMAT(us.start_date, '%Y-%m')
+                ORDER BY month
+            ");
+        } else {
+            $stmt = $this->db->query("SELECT DATE_FORMAT(CURRENT_DATE(), '%Y-%m') as month, 0 as revenue, 0 as subscriptions");
+        }
+        $stats['revenue_trend'] = $stmt->fetchAll();
+        
+        return $stats;
     }
     
     private function getAdminStats($hotelId) {
@@ -182,7 +312,10 @@ class DashboardController extends BaseController {
     }
     
     private function getGuestStats($userId) {
-        $stats = [];
+        $stats = [
+            'active_reservations' => 0,
+            'pending_requests' => 0
+        ];
         
         // Active reservations
         $stmt = $this->db->prepare("
@@ -191,7 +324,8 @@ class DashboardController extends BaseController {
             WHERE guest_id = ? AND status IN ('confirmed', 'checked_in')
         ");
         $stmt->execute([$userId]);
-        $stats['active_reservations'] = $stmt->fetch()['count'];
+        $result = $stmt->fetch();
+        $stats['active_reservations'] = $result ? $result['count'] : 0;
         
         // Pending requests
         $stmt = $this->db->prepare("
@@ -200,7 +334,8 @@ class DashboardController extends BaseController {
             WHERE guest_id = ? AND status IN ('pending', 'in_progress')
         ");
         $stmt->execute([$userId]);
-        $stats['pending_requests'] = $stmt->fetch()['count'];
+        $result = $stmt->fetch();
+        $stats['pending_requests'] = $result ? $result['count'] : 0;
         
         return $stats;
     }
