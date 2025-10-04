@@ -3,7 +3,7 @@
 -- Run this AFTER applying migration_v1.1.0.sql to verify success
 -- ============================================================================
 
-USE majorbot_db;
+USE aqh_mayordomo;
 
 -- ============================================================================
 -- 1. VERIFY NEW TABLES EXIST
@@ -15,109 +15,109 @@ SELECT
     'email_notifications' AS table_name,
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END AS status
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'email_notifications'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'email_notifications'
 UNION ALL
 SELECT 
     'availability_calendar',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'availability_calendar'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'availability_calendar'
 UNION ALL
 SELECT 
     'shopping_cart',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'shopping_cart'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'shopping_cart'
 UNION ALL
 SELECT 
     'cart_items',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'cart_items'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'cart_items'
 UNION ALL
 SELECT 
     'payment_transactions',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'payment_transactions'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'payment_transactions'
 UNION ALL
 SELECT 
     'invoices',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'invoices'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'invoices'
 UNION ALL
 SELECT 
     'invoice_items',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'invoice_items'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'invoice_items'
 UNION ALL
 SELECT 
     'subscription_plans',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'subscription_plans'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'subscription_plans'
 UNION ALL
 SELECT 
     'hotel_subscriptions',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'hotel_subscriptions'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'hotel_subscriptions'
 UNION ALL
 SELECT 
     'hotel_settings',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'hotel_settings'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'hotel_settings'
 UNION ALL
 SELECT 
     'global_statistics',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'global_statistics'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'global_statistics'
 UNION ALL
 SELECT 
     'hotel_statistics',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'hotel_statistics'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'hotel_statistics'
 UNION ALL
 SELECT 
     'activity_log',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'activity_log'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'activity_log'
 UNION ALL
 SELECT 
     'notifications',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'notifications'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'notifications'
 UNION ALL
 SELECT 
     'notification_preferences',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'notification_preferences'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'notification_preferences'
 UNION ALL
 SELECT 
     'reports',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'reports'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'reports'
 UNION ALL
 SELECT 
     'report_generations',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'report_generations'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'report_generations'
 UNION ALL
 SELECT 
     'export_queue',
     CASE WHEN COUNT(*) > 0 THEN '✓ EXISTS' ELSE '✗ MISSING' END
 FROM information_schema.TABLES 
-WHERE TABLE_SCHEMA = 'majorbot_db' AND TABLE_NAME = 'export_queue';
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' AND TABLE_NAME = 'export_queue';
 
 -- ============================================================================
 -- 2. VERIFY NEW COLUMNS IN EXISTING TABLES
@@ -131,7 +131,7 @@ SELECT
     COLUMN_TYPE,
     '✓ EXISTS' AS status
 FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA = 'majorbot_db' 
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' 
     AND TABLE_NAME = 'room_reservations'
     AND COLUMN_NAME IN ('confirmation_code', 'email_confirmed', 'confirmed_at', 'guest_name', 'guest_email');
 
@@ -143,7 +143,7 @@ SELECT
     COLUMN_TYPE,
     '✓ EXISTS' AS status
 FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA = 'majorbot_db' 
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' 
     AND TABLE_NAME = 'orders'
     AND COLUMN_NAME IN ('payment_method', 'payment_status', 'paid_at', 'tax_amount', 'discount_amount');
 
@@ -155,7 +155,7 @@ SELECT
     COLUMN_TYPE,
     '✓ EXISTS' AS status
 FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA = 'majorbot_db' 
+WHERE TABLE_SCHEMA = 'aqh_mayordomo' 
     AND TABLE_NAME = 'hotels'
     AND COLUMN_NAME IN ('owner_id', 'subscription_plan_id', 'subscription_status', 'max_rooms', 'timezone');
 
@@ -170,7 +170,7 @@ SELECT
     TABLE_NAME,
     '✓ EXISTS' AS status
 FROM information_schema.VIEWS
-WHERE TABLE_SCHEMA = 'majorbot_db'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo'
     AND TABLE_NAME IN ('v_room_availability', 'v_daily_revenue', 'v_occupancy_rate');
 
 -- ============================================================================
@@ -186,7 +186,7 @@ SELECT
     EVENT_OBJECT_TABLE,
     '✓ EXISTS' AS status
 FROM information_schema.TRIGGERS
-WHERE TRIGGER_SCHEMA = 'majorbot_db'
+WHERE TRIGGER_SCHEMA = 'aqh_mayordomo'
     AND TRIGGER_NAME IN (
         'trg_room_reservation_confirmation',
         'trg_table_reservation_confirmation',
@@ -206,7 +206,7 @@ SELECT
     ROUTINE_TYPE,
     '✓ EXISTS' AS status
 FROM information_schema.ROUTINES
-WHERE ROUTINE_SCHEMA = 'majorbot_db'
+WHERE ROUTINE_SCHEMA = 'aqh_mayordomo'
     AND ROUTINE_NAME IN (
         'sp_check_room_availability',
         'sp_calculate_occupancy'
@@ -274,7 +274,7 @@ SELECT
     CONSTRAINT_TYPE,
     '✓ VALID' AS status
 FROM information_schema.TABLE_CONSTRAINTS
-WHERE TABLE_SCHEMA = 'majorbot_db'
+WHERE TABLE_SCHEMA = 'aqh_mayordomo_db'
     AND CONSTRAINT_TYPE = 'FOREIGN KEY'
     AND TABLE_NAME IN (
         'email_notifications',
