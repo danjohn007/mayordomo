@@ -297,7 +297,7 @@ class DashboardController extends BaseController {
             FROM room_reservations rr
             JOIN rooms r ON rr.room_id = r.id
             WHERE r.hotel_id = ?
-            AND status IN ('confirmed', 'checked_in')
+            AND rr.status IN ('confirmed', 'checked_in')
             AND DATE(check_in) BETWEEN ? AND ?
             GROUP BY DATE(check_in)
             ORDER BY date
