@@ -59,6 +59,21 @@ mysql -u root -p majorbot_db < database/schema.sql
 mysql -u root -p majorbot_db < database/sample_data.sql
 ```
 
+#### Aplicar migración para nuevas funcionalidades (Fases 1-4):
+
+**Opción A - Usando el script automático (Recomendado):**
+```bash
+cd database
+./install_migration.sh --user root --password tu_password
+```
+
+**Opción B - Manual:**
+```bash
+mysql -u root -p majorbot_db < database/migration_v1.1.0.sql
+```
+
+> **Nota**: La migración agrega funcionalidades de Reservaciones, Pedidos & Facturación, Superadmin y Notificaciones. Ver [database/MIGRATION_GUIDE.md](database/MIGRATION_GUIDE.md) para más detalles.
+
 ### 3. Configurar Credenciales
 
 Edita el archivo `config/config.php` y actualiza las credenciales de la base de datos:
