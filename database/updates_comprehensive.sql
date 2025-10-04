@@ -161,13 +161,68 @@ CREATE TABLE IF NOT EXISTS activity_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- 6. USER PROFILE ENHANCEMENTS
+-- 6. USER PROFILE ENHANCEMENTS (IDEMPOTENT)
 -- ============================================================================
-ALTER TABLE users 
-    ADD COLUMN IF NOT EXISTS avatar VARCHAR(255) NULL AFTER phone,
-    ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'America/Mexico_City' AFTER avatar,
-    ADD COLUMN IF NOT EXISTS language VARCHAR(10) DEFAULT 'es' AFTER timezone,
-    ADD COLUMN IF NOT EXISTS last_login TIMESTAMP NULL AFTER language;
+
+-- Añadir columna avatar solo si no existe
+SET @exists_avatar := (
+    SELECT COUNT(*) 
+    FROM information_schema.columns 
+    WHERE table_schema = DATABASE() 
+      AND table_name = 'users' 
+      AND column_name = 'avatar'
+);
+SET @sql_avatar := IF(@exists_avatar = 0, 
+    'ALTER TABLE users ADD COLUMN avatar VARCHAR(255) NULL AFTER phone;', 
+    'SELECT "Column avatar already exists"');
+PREPARE stmt FROM @sql_avatar;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Añadir columna timezone solo si no existe
+SET @exists_timezone := (
+    SELECT COUNT(*) 
+    FROM information_schema.columns 
+    WHERE table_schema = DATABASE() 
+      AND table_name = 'users' 
+      AND column_name = 'timezone'
+);
+SET @sql_timezone := IF(@exists_timezone = 0, 
+    'ALTER TABLE users ADD COLUMN timezone VARCHAR(50) DEFAULT ''America/Mexico_City'' AFTER avatar;', 
+    'SELECT "Column timezone already exists"');
+PREPARE stmt FROM @sql_timezone;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Añadir columna language solo si no existe
+SET @exists_language := (
+    SELECT COUNT(*) 
+    FROM information_schema.columns 
+    WHERE table_schema = DATABASE() 
+      AND table_name = 'users' 
+      AND column_name = 'language'
+);
+SET @sql_language := IF(@exists_language = 0, 
+    'ALTER TABLE users ADD COLUMN language VARCHAR(10) DEFAULT ''es'' AFTER timezone;', 
+    'SELECT "Column language already exists"');
+PREPARE stmt FROM @sql_language;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- Añadir columna last_login solo si no existe
+SET @exists_last_login := (
+    SELECT COUNT(*) 
+    FROM information_schema.columns 
+    WHERE table_schema = DATABASE() 
+      AND table_name = 'users' 
+      AND column_name = 'last_login'
+);
+SET @sql_last_login := IF(@exists_last_login = 0, 
+    'ALTER TABLE users ADD COLUMN last_login TIMESTAMP NULL AFTER language;', 
+    'SELECT "Column last_login already exists"');
+PREPARE stmt FROM @sql_last_login;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- ============================================================================
 -- 7. LOG INSTALLATION
@@ -183,6 +238,7 @@ VALUES (
 -- ============================================================================
 -- VERIFICATION QUERIES
 -- ============================================================================
+-- Verifica tablas
 SELECT 'Password Resets Table' AS 'Feature', 
        IF(COUNT(*) > 0, '✓ Created', '✗ Failed') AS 'Status'
 FROM information_schema.tables 
@@ -201,9 +257,10 @@ UNION ALL
 SELECT 'Payment Transactions Table',
        IF(COUNT(*) > 0, '✓ Created', '✗ Failed')
 FROM information_schema.tables 
-WHERE table_schema = 'aqh_mayordomo' AND table_name = 'payment_transactions'
-UNION ALL
-SELECT 'Global Settings Expanded',
-       CONCAT('✓ ', COUNT(*), ' settings') 
-FROM global_settings
+WHERE table_schema = 'aqh_mayordomo' AND table_name = 'payment_transactions';
+
+-- Verifica settings
+SELECT 'Global Settings Expanded' AS 'Feature',
+       CONCAT('✓ ', COUNT(*), ' settings') AS 'Status'
+FROM aqh_mayordomo.global_settings
 WHERE category IN ('payment', 'email', 'loyalty', 'financial', 'site', 'whatsapp');
