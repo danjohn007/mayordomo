@@ -168,6 +168,13 @@ class DashboardController extends BaseController {
     private function getAdminStats($hotelId) {
         $stats = [];
         
+        // Date filters
+        $startDate = $_GET['start_date'] ?? date('Y-m-01'); // First day of current month
+        $endDate = $_GET['end_date'] ?? date('Y-m-d'); // Today
+        
+        $stats['startDate'] = $startDate;
+        $stats['endDate'] = $endDate;
+        
         // Total rooms
         $stmt = $this->db->prepare("SELECT COUNT(*) as total, status FROM rooms WHERE hotel_id = ? GROUP BY status");
         $stmt->execute([$hotelId]);
@@ -242,6 +249,61 @@ class DashboardController extends BaseController {
         ");
         $stmt->execute([$hotelId]);
         $stats['today_revenue'] = $stmt->fetch()['revenue'];
+        
+        // Get subscription info
+        $currentUser = currentUser();
+        $stmt = $this->db->prepare("
+            SELECT us.*, sp.name as plan_name, sp.price,
+                   DATEDIFF(us.end_date, CURDATE()) as days_remaining
+            FROM user_subscriptions us
+            JOIN subscription_plans sp ON us.subscription_id = sp.id
+            WHERE us.user_id = ? AND us.status = 'active'
+            ORDER BY us.end_date DESC
+            LIMIT 1
+        ");
+        $stmt->execute([$currentUser['id']]);
+        $stats['subscription'] = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Chart data for date range
+        // Reservations by day
+        $stmt = $this->db->prepare("
+            SELECT DATE(rr.created_at) as date, COUNT(*) as count
+            FROM room_reservations rr
+            JOIN rooms r ON rr.room_id = r.id
+            WHERE r.hotel_id = ? 
+            AND DATE(rr.created_at) BETWEEN ? AND ?
+            GROUP BY DATE(rr.created_at)
+            ORDER BY date
+        ");
+        $stmt->execute([$hotelId, $startDate, $endDate]);
+        $stats['chart_reservations'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Service requests by day
+        $stmt = $this->db->prepare("
+            SELECT DATE(requested_at) as date, COUNT(*) as count
+            FROM service_requests
+            WHERE hotel_id = ?
+            AND DATE(requested_at) BETWEEN ? AND ?
+            GROUP BY DATE(requested_at)
+            ORDER BY date
+        ");
+        $stmt->execute([$hotelId, $startDate, $endDate]);
+        $stats['chart_requests'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Occupancy rate by day
+        $stmt = $this->db->prepare("
+            SELECT DATE(check_in) as date, COUNT(*) as occupied,
+                   (SELECT COUNT(*) FROM rooms WHERE hotel_id = ?) as total_rooms
+            FROM room_reservations rr
+            JOIN rooms r ON rr.room_id = r.id
+            WHERE r.hotel_id = ?
+            AND status IN ('confirmed', 'checked_in')
+            AND DATE(check_in) BETWEEN ? AND ?
+            GROUP BY DATE(check_in)
+            ORDER BY date
+        ");
+        $stmt->execute([$hotelId, $hotelId, $startDate, $endDate]);
+        $stats['chart_occupancy'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         return $stats;
     }

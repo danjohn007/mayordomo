@@ -88,6 +88,90 @@
         </div>
     </div>
     
+    <!-- Subscription Info Card (Admin only) -->
+    <?php if ($user['role'] === 'admin' && isset($stats['subscription'])): ?>
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-<?= ($stats['subscription']['days_remaining'] ?? 0) > 7 ? 'success' : (($stats['subscription']['days_remaining'] ?? 0) > 0 ? 'warning' : 'danger') ?>">
+                <div class="card-header bg-<?= ($stats['subscription']['days_remaining'] ?? 0) > 7 ? 'success' : (($stats['subscription']['days_remaining'] ?? 0) > 0 ? 'warning' : 'danger') ?> text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-credit-card"></i> Suscripción Activa</h5>
+                        <a href="<?= BASE_URL ?>/profile" class="btn btn-light btn-sm">
+                            <i class="bi bi-arrow-up-circle"></i> Ver Mi Perfil
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Plan:</strong><br>
+                            <?= e($stats['subscription']['plan_name']) ?>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Precio:</strong><br>
+                            <?= formatCurrency($stats['subscription']['price']) ?>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Fecha Fin:</strong><br>
+                            <?= formatDate($stats['subscription']['end_date']) ?>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Días Restantes:</strong><br>
+                            <span class="badge bg-<?= ($stats['subscription']['days_remaining'] ?? 0) > 7 ? 'success' : (($stats['subscription']['days_remaining'] ?? 0) > 0 ? 'warning' : 'danger') ?> fs-6">
+                                <?= $stats['subscription']['days_remaining'] ?? 0 ?> días
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+    
+    <!-- Date Filters and Charts -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-graph-up"></i> Estadísticas</h5>
+                        <form method="GET" class="row g-2">
+                            <div class="col-auto">
+                                <input type="date" class="form-control form-control-sm" name="start_date" 
+                                       value="<?= e($stats['startDate'] ?? date('Y-m-01')) ?>" max="<?= date('Y-m-d') ?>">
+                            </div>
+                            <div class="col-auto">
+                                <input type="date" class="form-control form-control-sm" name="end_date" 
+                                       value="<?= e($stats['endDate'] ?? date('Y-m-d')) ?>" max="<?= date('Y-m-d') ?>">
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="bi bi-filter"></i> Filtrar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-4 mb-3">
+                            <h6>Reservaciones por Día</h6>
+                            <canvas id="reservationsChart" height="200"></canvas>
+                        </div>
+                        <div class="col-lg-4 mb-3">
+                            <h6>Solicitudes de Servicio</h6>
+                            <canvas id="requestsChart" height="200"></canvas>
+                        </div>
+                        <div class="col-lg-4 mb-3">
+                            <h6>Tasa de Ocupación</h6>
+                            <canvas id="occupancyChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="row">
         <!-- Recent Reservations -->
         <div class="col-md-6">
@@ -170,6 +254,105 @@
             </div>
         </div>
     </div>
+    
+    <!-- Chart.js Scripts for Admin Dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+    <?php if (isset($stats['chart_reservations'])): ?>
+    // Reservations Chart
+    const reservationsData = <?= json_encode($stats['chart_reservations']) ?>;
+    if (document.getElementById('reservationsChart')) {
+        const reservationsCtx = document.getElementById('reservationsChart').getContext('2d');
+        new Chart(reservationsCtx, {
+            type: 'line',
+            data: {
+                labels: reservationsData.map(d => d.date),
+                datasets: [{
+                    label: 'Reservaciones',
+                    data: reservationsData.map(d => d.count),
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+    <?php endif; ?>
+    
+    <?php if (isset($stats['chart_requests'])): ?>
+    // Service Requests Chart
+    const requestsData = <?= json_encode($stats['chart_requests']) ?>;
+    if (document.getElementById('requestsChart')) {
+        const requestsCtx = document.getElementById('requestsChart').getContext('2d');
+        new Chart(requestsCtx, {
+            type: 'bar',
+            data: {
+                labels: requestsData.map(d => d.date),
+                datasets: [{
+                    label: 'Solicitudes',
+                    data: requestsData.map(d => d.count),
+                    backgroundColor: 'rgba(255, 206, 86, 0.5)',
+                    borderColor: 'rgb(255, 206, 86)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+    <?php endif; ?>
+    
+    <?php if (isset($stats['chart_occupancy'])): ?>
+    // Occupancy Chart
+    const occupancyData = <?= json_encode($stats['chart_occupancy']) ?>;
+    if (document.getElementById('occupancyChart')) {
+        const occupancyCtx = document.getElementById('occupancyChart').getContext('2d');
+        new Chart(occupancyCtx, {
+            type: 'line',
+            data: {
+                labels: occupancyData.map(d => d.date),
+                datasets: [{
+                    label: 'Ocupación (%)',
+                    data: occupancyData.map(d => (d.occupied / d.total_rooms * 100).toFixed(2)),
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    <?php endif; ?>
+    </script>
 
 <?php elseif ($user['role'] === 'hostess'): ?>
     <!-- Hostess Dashboard -->

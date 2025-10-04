@@ -9,6 +9,16 @@
                         <i class="bi bi-building text-primary" style="font-size: 3rem;"></i>
                         <h2 class="mt-3">Registrar Hotel</h2>
                         <p class="text-muted">Registro para Propietarios y Administradores de Hoteles</p>
+                        <?php 
+                        $trialDays = $trialDays ?? 30;
+                        if ($trialDays > 0): 
+                        ?>
+                        <div class="alert alert-success mt-3">
+                            <i class="bi bi-gift"></i> 
+                            <strong>¡Prueba gratis por <?= $trialDays ?> días!</strong><br>
+                            Puedes usar MajorBot completamente gratis durante tu período de prueba.
+                        </div>
+                        <?php endif; ?>
                     </div>
                     
                     <?php if ($flash = flash('error')): ?>
