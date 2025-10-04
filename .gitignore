@@ -1,0 +1,42 @@
+# IDE and Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Environment and config (uncomment if you have sensitive data)
+# config/config.php
+
+# Uploaded files
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Cache
+cache/
+*.cache
+
+# Dependencies (if using Composer in future)
+vendor/
+composer.lock
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
