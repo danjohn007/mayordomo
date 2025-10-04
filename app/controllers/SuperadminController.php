@@ -263,7 +263,7 @@ class SuperadminController extends BaseController {
                    h.name as hotel_name
             FROM payment_transactions pt
             JOIN users u ON pt.user_id = u.id
-            LEFT JOIN hotels h ON pt.hotel_id = h.id
+            LEFT JOIN hotels h ON u.hotel_id = h.id
             ORDER BY pt.created_at DESC
             LIMIT ? OFFSET ?
         ");

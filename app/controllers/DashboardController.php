@@ -253,10 +253,10 @@ class DashboardController extends BaseController {
         // Get subscription info
         $currentUser = currentUser();
         $stmt = $this->db->prepare("
-            SELECT us.*, sp.name as plan_name, sp.price,
+            SELECT us.*, s.name as plan_name, s.price,
                    DATEDIFF(us.end_date, CURDATE()) as days_remaining
             FROM user_subscriptions us
-            JOIN subscription_plans sp ON us.subscription_id = sp.id
+            JOIN subscriptions s ON us.subscription_id = s.id
             WHERE us.user_id = ? AND us.status = 'active'
             ORDER BY us.end_date DESC
             LIMIT 1

@@ -38,7 +38,6 @@ class AuthController extends BaseController {
         
         $email = sanitize($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
-        $acceptTerms = isset($_POST['accept_terms']) && $_POST['accept_terms'];
         
         // Validation
         $errors = [];
@@ -51,10 +50,6 @@ class AuthController extends BaseController {
         
         if (empty($password)) {
             $errors[] = 'La contraseña es requerida';
-        }
-        
-        if (!$acceptTerms) {
-            $errors[] = 'Debes aceptar los términos y condiciones';
         }
         
         if (!empty($errors)) {
@@ -121,6 +116,7 @@ class AuthController extends BaseController {
         }
         
         $hotel_name = sanitize($_POST['hotel_name'] ?? '');
+        $acceptTerms = isset($_POST['accept_terms']) && $_POST['accept_terms'];
         $data = [
             'email' => sanitize($_POST['email'] ?? ''),
             'password' => $_POST['password'] ?? '',
@@ -161,6 +157,10 @@ class AuthController extends BaseController {
         
         if ($data['password'] !== $data['confirm_password']) {
             $errors[] = 'Las contraseñas no coinciden';
+        }
+        
+        if (!$acceptTerms) {
+            $errors[] = 'Debes aceptar los términos y condiciones';
         }
         
         // Check if email exists
