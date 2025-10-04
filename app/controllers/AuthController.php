@@ -93,9 +93,13 @@ class AuthController extends BaseController {
         $stmt->execute();
         $subscriptions = $stmt->fetchAll();
         
+        // Get trial days from settings
+        $trialDays = getSetting('trial_days', 30);
+        
         $this->view('auth/register', [
             'title' => 'Registrarse',
-            'subscriptions' => $subscriptions
+            'subscriptions' => $subscriptions,
+            'trialDays' => $trialDays
         ]);
     }
     
@@ -227,6 +231,204 @@ class AuthController extends BaseController {
             $this->db->rollBack();
             flash('error', 'Error al crear la cuenta: ' . $e->getMessage(), 'danger');
             redirect('auth/register');
+        }
+    }
+    
+    /**
+     * Show forgot password form
+     */
+    public function forgotPassword() {
+        if (isLoggedIn()) {
+            redirect('dashboard');
+        }
+        
+        $this->view('auth/forgot_password', [
+            'title' => 'Recuperar Contraseña'
+        ]);
+    }
+    
+    /**
+     * Process forgot password request
+     */
+    public function processForgotPassword() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('auth/forgotPassword');
+        }
+        
+        $email = sanitize($_POST['email'] ?? '');
+        
+        if (empty($email) || !isValidEmail($email)) {
+            flash('error', 'Por favor ingresa un email válido', 'danger');
+            redirect('auth/forgotPassword');
+        }
+        
+        // Find user by email
+        $userModel = $this->model('User');
+        $user = $userModel->findByEmail($email);
+        
+        if (!$user) {
+            // Don't reveal if email exists or not for security
+            flash('success', 'Si el email existe en nuestro sistema, recibirás un enlace de recuperación en breve.', 'success');
+            redirect('auth/forgotPassword');
+        }
+        
+        try {
+            // Generate reset token
+            $token = generateToken(32);
+            $expires_at = date('Y-m-d H:i:s', strtotime('+1 hour'));
+            
+            // Save token to database
+            $stmt = $this->db->prepare("
+                INSERT INTO password_resets (user_id, token, expires_at, created_at)
+                VALUES (?, ?, ?, NOW())
+            ");
+            $stmt->execute([$user['id'], $token, $expires_at]);
+            
+            // Send email with reset link
+            $resetLink = BASE_URL . '/auth/resetPassword?token=' . $token;
+            $subject = 'Recuperación de Contraseña - ' . APP_NAME;
+            $body = "
+                <html>
+                <head>
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                        .button { background-color: #0d6efd; color: white; padding: 12px 24px; 
+                                 text-decoration: none; border-radius: 5px; display: inline-block; }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <h2>Recuperación de Contraseña</h2>
+                        <p>Hola {$user['first_name']},</p>
+                        <p>Hemos recibido una solicitud para restablecer tu contraseña. 
+                           Haz clic en el siguiente enlace para continuar:</p>
+                        <p style='margin: 30px 0;'>
+                            <a href='{$resetLink}' class='button'>Restablecer Contraseña</a>
+                        </p>
+                        <p>O copia y pega este enlace en tu navegador:</p>
+                        <p style='word-break: break-all; color: #666;'>{$resetLink}</p>
+                        <p>Este enlace expirará en 1 hora.</p>
+                        <p>Si no solicitaste este cambio, puedes ignorar este correo.</p>
+                        <hr style='margin: 30px 0;'>
+                        <p style='color: #666; font-size: 12px;'>
+                            Este es un correo automático de " . APP_NAME . ". Por favor no respondas a este mensaje.
+                        </p>
+                    </div>
+                </body>
+                </html>
+            ";
+            
+            sendEmail($email, $subject, $body, true);
+            
+            flash('success', 'Si el email existe en nuestro sistema, recibirás un enlace de recuperación en breve.', 'success');
+            
+        } catch (Exception $e) {
+            error_log("Password reset error: " . $e->getMessage());
+            flash('error', 'Ocurrió un error al procesar tu solicitud. Por favor intenta más tarde.', 'danger');
+        }
+        
+        redirect('auth/forgotPassword');
+    }
+    
+    /**
+     * Show reset password form
+     */
+    public function resetPassword() {
+        if (isLoggedIn()) {
+            redirect('dashboard');
+        }
+        
+        $token = $_GET['token'] ?? '';
+        
+        if (empty($token)) {
+            flash('error', 'Token de recuperación inválido', 'danger');
+            redirect('auth/forgotPassword');
+        }
+        
+        // Verify token
+        $stmt = $this->db->prepare("
+            SELECT pr.*, u.email, u.first_name 
+            FROM password_resets pr
+            JOIN users u ON pr.user_id = u.id
+            WHERE pr.token = ? AND pr.used = 0 AND pr.expires_at > NOW()
+        ");
+        $stmt->execute([$token]);
+        $resetRequest = $stmt->fetch();
+        
+        $this->view('auth/reset_password', [
+            'title' => 'Restablecer Contraseña',
+            'token' => $token,
+            'valid' => $resetRequest !== false
+        ]);
+    }
+    
+    /**
+     * Process password reset
+     */
+    public function processResetPassword() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('auth/login');
+        }
+        
+        $token = $_POST['token'] ?? '';
+        $password = $_POST['password'] ?? '';
+        $confirm_password = $_POST['confirm_password'] ?? '';
+        
+        $errors = [];
+        
+        if (empty($token)) {
+            $errors[] = 'Token inválido';
+        }
+        
+        if (empty($password)) {
+            $errors[] = 'La contraseña es requerida';
+        } elseif (strlen($password) < 6) {
+            $errors[] = 'La contraseña debe tener al menos 6 caracteres';
+        }
+        
+        if ($password !== $confirm_password) {
+            $errors[] = 'Las contraseñas no coinciden';
+        }
+        
+        if (!empty($errors)) {
+            flash('error', implode('<br>', $errors), 'danger');
+            redirect('auth/resetPassword?token=' . $token);
+        }
+        
+        try {
+            // Verify token again
+            $stmt = $this->db->prepare("
+                SELECT pr.*, u.id as user_id, u.email 
+                FROM password_resets pr
+                JOIN users u ON pr.user_id = u.id
+                WHERE pr.token = ? AND pr.used = 0 AND pr.expires_at > NOW()
+            ");
+            $stmt->execute([$token]);
+            $resetRequest = $stmt->fetch();
+            
+            if (!$resetRequest) {
+                flash('error', 'El enlace de recuperación es inválido o ha expirado', 'danger');
+                redirect('auth/forgotPassword');
+            }
+            
+            // Update password
+            $hashedPassword = password_hash($password, PASSWORD_HASH_ALGO, ['cost' => PASSWORD_HASH_COST]);
+            
+            $stmt = $this->db->prepare("UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?");
+            $stmt->execute([$hashedPassword, $resetRequest['user_id']]);
+            
+            // Mark token as used
+            $stmt = $this->db->prepare("UPDATE password_resets SET used = 1 WHERE token = ?");
+            $stmt->execute([$token]);
+            
+            flash('success', '¡Contraseña actualizada exitosamente! Ahora puedes iniciar sesión.', 'success');
+            redirect('auth/login');
+            
+        } catch (Exception $e) {
+            error_log("Password update error: " . $e->getMessage());
+            flash('error', 'Ocurrió un error al actualizar tu contraseña. Por favor intenta más tarde.', 'danger');
+            redirect('auth/resetPassword?token=' . $token);
         }
     }
     

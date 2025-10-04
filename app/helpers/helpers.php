@@ -198,3 +198,148 @@ function generateCsrfToken() {
 function verifyCsrfToken($token) {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
+
+/**
+ * Send email using configured SMTP settings
+ */
+function sendEmail($to, $subject, $body, $isHtml = true) {
+    require_once CONFIG_PATH . '/email.php';
+    
+    // Check if SMTP is enabled
+    if (!SMTP_ENABLED) {
+        error_log("Email not sent - SMTP is disabled");
+        return false;
+    }
+    
+    // Basic email validation
+    if (!isValidEmail($to)) {
+        error_log("Invalid email address: $to");
+        return false;
+    }
+    
+    // Prepare headers
+    $headers = [];
+    $headers[] = "MIME-Version: 1.0";
+    $headers[] = "From: " . SMTP_FROM_NAME . " <" . SMTP_FROM_EMAIL . ">";
+    $headers[] = "Reply-To: " . SMTP_FROM_EMAIL;
+    $headers[] = "X-Mailer: PHP/" . phpversion();
+    
+    if ($isHtml) {
+        $headers[] = "Content-Type: text/html; charset=UTF-8";
+    } else {
+        $headers[] = "Content-Type: text/plain; charset=UTF-8";
+    }
+    
+    // Try to send email
+    try {
+        $success = mail($to, $subject, $body, implode("\r\n", $headers));
+        
+        if ($success) {
+            error_log("Email sent successfully to: $to");
+        } else {
+            error_log("Failed to send email to: $to");
+        }
+        
+        return $success;
+    } catch (Exception $e) {
+        error_log("Email error: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Generate random token
+ */
+function generateToken($length = 32) {
+    return bin2hex(random_bytes($length));
+}
+
+/**
+ * Get setting from global_settings table
+ */
+function getSetting($key, $default = null) {
+    static $cache = [];
+    
+    if (isset($cache[$key])) {
+        return $cache[$key];
+    }
+    
+    try {
+        require_once CONFIG_PATH . '/database.php';
+        $db = Database::getInstance()->getConnection();
+        
+        $stmt = $db->prepare("SELECT setting_value, setting_type FROM global_settings WHERE setting_key = ?");
+        $stmt->execute([$key]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($result) {
+            $value = $result['setting_value'];
+            
+            // Convert based on type
+            switch ($result['setting_type']) {
+                case 'boolean':
+                    $value = (bool)$value;
+                    break;
+                case 'number':
+                    $value = is_numeric($value) ? (float)$value : $value;
+                    break;
+                case 'json':
+                    $value = json_decode($value, true);
+                    break;
+            }
+            
+            $cache[$key] = $value;
+            return $value;
+        }
+    } catch (Exception $e) {
+        error_log("Error getting setting '$key': " . $e->getMessage());
+    }
+    
+    return $default;
+}
+
+/**
+ * Update setting in global_settings table
+ */
+function updateSetting($key, $value, $userId = null) {
+    try {
+        require_once CONFIG_PATH . '/database.php';
+        $db = Database::getInstance()->getConnection();
+        
+        // Get setting type
+        $stmt = $db->prepare("SELECT setting_type FROM global_settings WHERE setting_key = ?");
+        $stmt->execute([$key]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$result) {
+            return false;
+        }
+        
+        // Convert value based on type
+        $settingType = $result['setting_type'];
+        if ($settingType === 'json' && is_array($value)) {
+            $value = json_encode($value);
+        } elseif ($settingType === 'boolean') {
+            $value = $value ? '1' : '0';
+        }
+        
+        // Update setting
+        $stmt = $db->prepare("
+            UPDATE global_settings 
+            SET setting_value = ?, updated_by = ?, updated_at = NOW() 
+            WHERE setting_key = ?
+        ");
+        
+        return $stmt->execute([$value, $userId, $key]);
+    } catch (Exception $e) {
+        error_log("Error updating setting '$key': " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Generate unique referral code
+ */
+function generateReferralCode($userId) {
+    return strtoupper(substr(md5($userId . time()), 0, 8));
+}
