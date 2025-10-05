@@ -5,7 +5,7 @@
         <div class="card">
             <div class="card-header"><h4 class="mb-0"><i class="bi bi-plus-circle"></i> Nueva Amenidad</h4></div>
             <div class="card-body">
-                <form method="POST" action="<?= BASE_URL ?>/amenities/store">
+                <form method="POST" action="<?= BASE_URL ?>/amenities/store" enctype="multipart/form-data">
                     <div class="row">
                         <div class="col-md-8 mb-3">
                             <label for="name" class="form-label">Nombre *</label>
@@ -54,6 +54,11 @@
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="is_available" name="is_available" checked>
                         <label class="form-check-label" for="is_available">Disponible</label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="images" class="form-label">Imágenes (opcional)</label>
+                        <input type="file" class="form-control" id="images" name="images[]" accept="image/*" multiple>
+                        <small class="text-muted">Puedes seleccionar una o más imágenes (JPG, PNG, GIF)</small>
                     </div>
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Guardar</button>

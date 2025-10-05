@@ -51,6 +51,37 @@ class AmenitiesController extends BaseController {
         
         $model = $this->model('Amenity');
         if ($model->create($data)) {
+            $amenityId = $this->db->lastInsertId();
+            
+            // Handle image uploads
+            if (!empty($_FILES['images']['name'][0])) {
+                $uploadDir = PUBLIC_PATH . '/uploads/amenities/';
+                $imageModel = $this->model('ResourceImage');
+                
+                foreach ($_FILES['images']['name'] as $key => $fileName) {
+                    if ($_FILES['images']['error'][$key] === UPLOAD_ERR_OK) {
+                        $tmpName = $_FILES['images']['tmp_name'][$key];
+                        $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+                        $allowedExts = ['jpg', 'jpeg', 'png', 'gif'];
+                        
+                        if (in_array($fileExt, $allowedExts)) {
+                            $newFileName = 'amenity_' . $amenityId . '_' . uniqid() . '.' . $fileExt;
+                            $uploadPath = $uploadDir . $newFileName;
+                            
+                            if (move_uploaded_file($tmpName, $uploadPath)) {
+                                $imageModel->create([
+                                    'resource_type' => 'amenity',
+                                    'resource_id' => $amenityId,
+                                    'image_path' => 'uploads/amenities/' . $newFileName,
+                                    'display_order' => $key,
+                                    'is_primary' => ($key === 0) ? 1 : 0
+                                ]);
+                            }
+                        }
+                    }
+                }
+            }
+            
             flash('success', 'Amenidad creada exitosamente', 'success');
         } else {
             flash('error', 'Error al crear la amenidad', 'danger');
