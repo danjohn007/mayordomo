@@ -76,6 +76,7 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
+                            <th>Imagen</th>
                             <th>Número</th>
                             <th>Tipo</th>
                             <th>Piso</th>
@@ -88,6 +89,17 @@
                     <tbody>
                         <?php foreach ($rooms as $room): ?>
                             <tr>
+                                <td>
+                                    <?php if (!empty($room['primary_image'])): ?>
+                                        <img src="<?= BASE_URL ?>/<?= e($room['primary_image']) ?>" 
+                                             alt="Habitación <?= e($room['room_number']) ?>" 
+                                             style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;">
+                                    <?php else: ?>
+                                        <div style="width: 60px; height: 60px; background: #e9ecef; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="bi bi-door-closed text-muted"></i>
+                                        </div>
+                                    <?php endif; ?>
+                                </td>
                                 <td><strong><?= e($room['room_number']) ?></strong></td>
                                 <td>
                                     <?php

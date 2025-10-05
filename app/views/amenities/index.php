@@ -57,6 +57,7 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
+                            <th>Imagen</th>
                             <th>Nombre</th>
                             <th>Categoría</th>
                             <th>Precio</th>
@@ -69,6 +70,17 @@
                     <tbody>
                         <?php foreach ($amenities as $amenity): ?>
                             <tr>
+                                <td>
+                                    <?php if (!empty($amenity['primary_image'])): ?>
+                                        <img src="<?= BASE_URL ?>/<?= e($amenity['primary_image']) ?>" 
+                                             alt="<?= e($amenity['name']) ?>" 
+                                             style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;">
+                                    <?php else: ?>
+                                        <div style="width: 60px; height: 60px; background: #e9ecef; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="bi bi-spa text-muted"></i>
+                                        </div>
+                                    <?php endif; ?>
+                                </td>
                                 <td><strong><?= e($amenity['name']) ?></strong></td>
                                 <td><?= ucfirst($amenity['category']) ?></td>
                                 <td><?= formatCurrency($amenity['price']) ?></td>
