@@ -17,6 +17,7 @@
                     <option value="">Todas</option>
                     <option value="room" <?= ($filters['type'] ?? '') === 'room' ? 'selected' : '' ?>>Habitaciones</option>
                     <option value="table" <?= ($filters['type'] ?? '') === 'table' ? 'selected' : '' ?>>Mesas</option>
+                    <option value="amenity" <?= ($filters['type'] ?? '') === 'amenity' ? 'selected' : '' ?>>Amenidades</option>
                 </select>
             </div>
             <div class="col-md-2">
@@ -78,8 +79,12 @@
                             <td>
                                 <?php if ($reservation['reservation_type'] === 'room'): ?>
                                     <span class="badge bg-info"><i class="bi bi-door-closed"></i> Habitación</span>
-                                <?php else: ?>
+                                <?php elseif ($reservation['reservation_type'] === 'table'): ?>
                                     <span class="badge bg-success"><i class="bi bi-table"></i> Mesa</span>
+                                <?php elseif ($reservation['reservation_type'] === 'amenity'): ?>
+                                    <span class="badge bg-primary"><i class="bi bi-spa"></i> Amenidad</span>
+                                <?php else: ?>
+                                    <span class="badge bg-secondary"><?= e($reservation['reservation_type']) ?></span>
                                 <?php endif; ?>
                             </td>
                             <td><strong><?= e($reservation['resource_number']) ?></strong></td>

@@ -56,7 +56,7 @@
                             <?php foreach ($images as $img): ?>
                                 <div class="col-md-3">
                                     <div class="card">
-                                        <img src="<?= BASE_URL ?>/<?= e($img['image_path']) ?>" class="card-img-top" alt="Imagen" style="height: 100px; object-fit: cover;">
+                                        <img src="<?= BASE_URL ?>/public/<?= e($img['image_path']) ?>" class="card-img-top" alt="Imagen" style="height: 100px; object-fit: cover;">
                                         <div class="card-body p-2">
                                             <form method="POST" action="<?= BASE_URL ?>/tables/setPrimaryImage/<?= $img['id'] ?>" style="display: inline;">
                                                 <?php if ($img['is_primary']): ?>
