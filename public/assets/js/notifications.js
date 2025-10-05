@@ -75,12 +75,13 @@
                 }
             }
             
-            // Check if notification requires sound (pending status)
-            if (notification.requires_sound || 
+            // Check if notification requires sound (pending status only)
+            // Sound should play persistently until admin confirms or cancels
+            if (notification.requires_sound && (
                 (notification.related_type === 'service_request' && notification.status !== 'completed') ||
-                (notification.related_type === 'room_reservation' && ['pending', 'confirmed'].includes(notification.status)) ||
-                (notification.related_type === 'table_reservation' && ['pending', 'confirmed'].includes(notification.status)) ||
-                (notification.related_type === 'amenity_reservation' && ['pending', 'confirmed'].includes(notification.status))) {
+                (notification.related_type === 'room_reservation' && notification.status === 'pending') ||
+                (notification.related_type === 'table_reservation' && notification.status === 'pending') ||
+                (notification.related_type === 'amenity_reservation' && notification.status === 'pending'))) {
                 activeNotifications.add(notification.id);
                 hasPendingNotifications = true;
             } else {

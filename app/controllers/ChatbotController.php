@@ -159,8 +159,9 @@ class ChatbotController extends BaseController {
             $errors[] = 'La hora de reservación es requerida';
         }
         
-        // Validate room number or visitor status for rooms
-        if ($data['resource_type'] === 'room' && !$data['is_visitor'] && empty($data['room_number'])) {
+        // Validate room number for guests reserving tables/amenities (not for room reservations)
+        // Room number is only needed when guests reserve tables or amenities to identify them
+        if ($data['resource_type'] !== 'room' && !$data['is_visitor'] && empty($data['room_number'])) {
             $errors[] = 'El número de habitación es requerido para huéspedes';
         }
         
