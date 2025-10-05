@@ -157,7 +157,7 @@
                                 <?= $daysRemaining ?> días restantes
                             </span>
                         </p>
-                        <a href="<?= BASE_URL ?>/profile" class="btn btn-<?= $badgeClass ?> btn-sm w-100">
+                        <a href="<?= BASE_URL ?>/subscription" class="btn btn-<?= $badgeClass ?> btn-sm w-100">
                             <i class="bi bi-arrow-up-circle"></i> Actualizar Plan
                         </a>
                     </div>

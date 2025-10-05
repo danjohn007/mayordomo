@@ -100,10 +100,19 @@ class AuthController extends BaseController {
         // Get trial days from settings
         $trialDays = getSetting('trial_days', 30);
         
+        // Get PayPal settings
+        $paypalEnabled = getSetting('paypal_enabled', '0') === '1';
+        
+        // Get bank accounts
+        $stmt = $this->db->query("SELECT * FROM bank_accounts WHERE is_active = 1");
+        $bankAccounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
         $this->view('auth/register', [
             'title' => 'Registrarse',
             'subscriptions' => $subscriptions,
-            'trialDays' => $trialDays
+            'trialDays' => $trialDays,
+            'paypalEnabled' => $paypalEnabled,
+            'bankAccounts' => $bankAccounts
         ]);
     }
     
@@ -117,6 +126,7 @@ class AuthController extends BaseController {
         
         $hotel_name = sanitize($_POST['hotel_name'] ?? '');
         $acceptTerms = isset($_POST['accept_terms']) && $_POST['accept_terms'];
+        $paymentOption = sanitize($_POST['payment_option'] ?? 'later');
         $data = [
             'email' => sanitize($_POST['email'] ?? ''),
             'password' => $_POST['password'] ?? '',
@@ -231,9 +241,61 @@ class AuthController extends BaseController {
                 }
             }
             
+            // 5. Handle payment proof if provided
+            if ($paymentOption === 'proof' && isset($_FILES['reg_payment_proof']) && $_FILES['reg_payment_proof']['error'] === UPLOAD_ERR_OK) {
+                try {
+                    // Handle file upload
+                    $uploadDir = PUBLIC_PATH . '/uploads/payment_proofs/';
+                    if (!is_dir($uploadDir)) {
+                        mkdir($uploadDir, 0755, true);
+                    }
+                    
+                    $fileExtension = pathinfo($_FILES['reg_payment_proof']['name'], PATHINFO_EXTENSION);
+                    $fileName = 'payment_' . $user_id . '_' . time() . '.' . $fileExtension;
+                    $filePath = $uploadDir . $fileName;
+                    
+                    if (move_uploaded_file($_FILES['reg_payment_proof']['tmp_name'], $filePath)) {
+                        // Get subscription to know the price
+                        $stmt = $this->db->prepare("SELECT * FROM subscriptions WHERE id = ?");
+                        $stmt->execute([$data['subscription_id']]);
+                        $subscription = $stmt->fetch();
+                        
+                        // Create payment transaction record
+                        $transactionId = 'TXN_' . strtoupper(substr(md5(uniqid()), 0, 10));
+                        $paymentMethod = sanitize($_POST['reg_payment_method'] ?? 'transfer');
+                        $transactionReference = sanitize($_POST['reg_transaction_reference'] ?? '');
+                        
+                        $stmt = $this->db->prepare("
+                            INSERT INTO payment_transactions 
+                            (user_id, subscription_id, amount, payment_method, transaction_id, 
+                             payment_proof, transaction_reference, status, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', NOW())
+                        ");
+                        $stmt->execute([
+                            $user_id,
+                            $data['subscription_id'],
+                            $subscription['price'],
+                            $paymentMethod,
+                            $transactionId,
+                            $fileName,
+                            $transactionReference
+                        ]);
+                    }
+                } catch (Exception $e) {
+                    // Log error but don't stop registration
+                    error_log('Payment proof upload failed: ' . $e->getMessage());
+                }
+            }
+            
             $this->db->commit();
             
-            flash('success', '¡Registro exitoso! Tu hotel ha sido creado y tu periodo de prueba está activo. Por favor inicia sesión.', 'success');
+            $message = '¡Registro exitoso! Tu hotel ha sido creado y tu periodo de prueba está activo.';
+            if ($paymentOption === 'proof') {
+                $message .= ' Tu comprobante de pago será revisado por un administrador.';
+            }
+            $message .= ' Por favor inicia sesión.';
+            
+            flash('success', $message, 'success');
             redirect('auth/login');
             
         } catch (Exception $e) {

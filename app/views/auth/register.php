@@ -15,7 +15,7 @@
                     $trialDays = $trialDays ?? 30;
                     if ($trialDays > 0): 
                     ?>
-                    <div class="alert alert-success mb-3">
+                    <div class="alert alert-success alert-permanent mb-3">
                         <i class="bi bi-gift"></i> 
                         <strong>¡Prueba gratis por <?= $trialDays ?> días!</strong><br>
                         Puedes usar MajorBot completamente gratis durante tu período de prueba.
@@ -29,7 +29,7 @@
                         </div>
                     <?php endif; ?>
                     
-                    <form action="<?= BASE_URL ?>/auth/processRegister" method="POST">
+                    <form action="<?= BASE_URL ?>/auth/processRegister" method="POST" enctype="multipart/form-data">
                         <div class="mb-3">
                             <label for="hotel_name" class="form-label">Nombre del Hotel o Alojamiento *</label>
                             <input type="text" class="form-control" id="hotel_name" name="hotel_name" required placeholder="Ej: Hotel Paradise">
@@ -73,15 +73,114 @@
                         
                         <div class="mb-3">
                             <label for="subscription_id" class="form-label">Plan de Suscripción *</label>
-                            <select class="form-select" id="subscription_id" name="subscription_id" required>
+                            <select class="form-select" id="subscription_id" name="subscription_id" required onchange="handlePlanChange()">
                                 <option value="">Selecciona un plan</option>
                                 <?php foreach ($subscriptions as $sub): ?>
-                                    <option value="<?= $sub['id'] ?>">
+                                    <option value="<?= $sub['id'] ?>" 
+                                            data-price="<?= $sub['price'] ?>"
+                                            data-type="<?= $sub['type'] ?? 'paid' ?>"
+                                            data-name="<?= e($sub['name']) ?>">
                                         <?= e($sub['name']) ?> - <?= formatCurrency($sub['price']) ?> 
                                         (<?= $sub['duration_days'] ?> días)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
+                        </div>
+                        
+                        <!-- Payment Options (shown for paid plans) -->
+                        <div id="paymentOptions" style="display: none;">
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> 
+                                <strong>Opciones de Pago Disponibles:</strong><br>
+                                Puedes pagar con PayPal o subir un comprobante de pago para validación manual.
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Método de Pago</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="payment_option" 
+                                           id="payment_later" value="later" checked onchange="togglePaymentForms()">
+                                    <label class="form-check-label" for="payment_later">
+                                        <i class="bi bi-clock"></i> Pagar después (acceso inmediato al período de prueba)
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="payment_option" 
+                                           id="payment_proof" value="proof" onchange="togglePaymentForms()">
+                                    <label class="form-check-label" for="payment_proof">
+                                        <i class="bi bi-file-earmark-arrow-up"></i> Subir comprobante de pago
+                                    </label>
+                                </div>
+                                <?php if ($paypalEnabled ?? false): ?>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="payment_option" 
+                                           id="payment_paypal" value="paypal" onchange="togglePaymentForms()">
+                                    <label class="form-check-label" for="payment_paypal">
+                                        <i class="bi bi-paypal"></i> Pagar con PayPal
+                                    </label>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <!-- Payment Proof Form -->
+                            <div id="proofForm" style="display: none;">
+                                <div class="card bg-light mb-3">
+                                    <div class="card-body">
+                                        <h6 class="card-title"><i class="bi bi-file-earmark-arrow-up"></i> Comprobante de Pago</h6>
+                                        
+                                        <?php if (!empty($bankAccounts ?? [])): ?>
+                                        <div class="alert alert-secondary">
+                                            <h6><i class="bi bi-bank"></i> Información Bancaria:</h6>
+                                            <?php foreach ($bankAccounts as $account): ?>
+                                            <div class="mb-2">
+                                                <strong><?= e($account['bank_name']) ?></strong><br>
+                                                Titular: <?= e($account['account_holder']) ?><br>
+                                                Cuenta: <?= e($account['account_number']) ?>
+                                                <?php if ($account['clabe']): ?><br>CLABE: <?= e($account['clabe']) ?><?php endif; ?>
+                                            </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <?php endif; ?>
+                                        
+                                        <div class="mb-2">
+                                            <label for="reg_payment_method" class="form-label">Método de Pago</label>
+                                            <select class="form-select form-select-sm" id="reg_payment_method" name="reg_payment_method">
+                                                <option value="transfer">Transferencia Bancaria</option>
+                                                <option value="deposit">Depósito Bancario</option>
+                                                <option value="oxxo">OXXO</option>
+                                                <option value="other">Otro</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-2">
+                                            <label for="reg_transaction_reference" class="form-label">Referencia</label>
+                                            <input type="text" class="form-control form-control-sm" 
+                                                   id="reg_transaction_reference" name="reg_transaction_reference"
+                                                   placeholder="Número de referencia o folio">
+                                        </div>
+                                        
+                                        <div class="mb-2">
+                                            <label for="reg_payment_proof" class="form-label">Archivo</label>
+                                            <input type="file" class="form-control form-control-sm" 
+                                                   id="reg_payment_proof" name="reg_payment_proof"
+                                                   accept="image/*,.pdf">
+                                            <small class="text-muted">JPG, PNG o PDF</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- PayPal Form -->
+                            <?php if ($paypalEnabled ?? false): ?>
+                            <div id="paypalForm" style="display: none;">
+                                <div class="card bg-light mb-3">
+                                    <div class="card-body">
+                                        <h6 class="card-title"><i class="bi bi-paypal"></i> Pagar con PayPal</h6>
+                                        <p class="text-muted small">Después de registrarte, serás redirigido a PayPal para completar el pago.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php endif; ?>
                         </div>
                         
                         <div class="mb-3 form-check">
@@ -106,6 +205,59 @@
         </div>
     </div>
 </div>
+
+<script>
+function handlePlanChange() {
+    const select = document.getElementById('subscription_id');
+    const selectedOption = select.options[select.selectedIndex];
+    const paymentOptions = document.getElementById('paymentOptions');
+    
+    if (selectedOption.value) {
+        const planType = selectedOption.getAttribute('data-type');
+        const price = parseFloat(selectedOption.getAttribute('data-price'));
+        
+        // Show payment options only for paid plans (price > 0)
+        if (price > 0) {
+            paymentOptions.style.display = 'block';
+        } else {
+            paymentOptions.style.display = 'none';
+        }
+    } else {
+        paymentOptions.style.display = 'none';
+    }
+}
+
+function togglePaymentForms() {
+    const proofForm = document.getElementById('proofForm');
+    const paypalForm = document.getElementById('paypalForm');
+    
+    if (document.getElementById('payment_proof').checked) {
+        proofForm.style.display = 'block';
+        if (paypalForm) paypalForm.style.display = 'none';
+        
+        // Make proof fields required
+        document.getElementById('reg_payment_method').required = true;
+        document.getElementById('reg_transaction_reference').required = true;
+        document.getElementById('reg_payment_proof').required = true;
+    } else if (document.getElementById('payment_paypal') && document.getElementById('payment_paypal').checked) {
+        proofForm.style.display = 'none';
+        if (paypalForm) paypalForm.style.display = 'block';
+        
+        // Make proof fields not required
+        document.getElementById('reg_payment_method').required = false;
+        document.getElementById('reg_transaction_reference').required = false;
+        document.getElementById('reg_payment_proof').required = false;
+    } else {
+        proofForm.style.display = 'none';
+        if (paypalForm) paypalForm.style.display = 'none';
+        
+        // Make proof fields not required
+        document.getElementById('reg_payment_method').required = false;
+        document.getElementById('reg_transaction_reference').required = false;
+        document.getElementById('reg_payment_proof').required = false;
+    }
+}
+</script>
 
 <!-- Terms and Conditions Modal -->
 <div class="modal fade" id="termsModal" tabindex="-1">
