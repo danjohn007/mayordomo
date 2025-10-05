@@ -163,4 +163,35 @@ class User {
         $stmt->execute($params);
         return $stmt->fetchColumn() > 0;
     }
+    
+    /**
+     * Find user by phone
+     */
+    public function findByPhone($phone) {
+        $stmt = $this->db->prepare("
+            SELECT u.*, h.name as hotel_name 
+            FROM users u 
+            LEFT JOIN hotels h ON u.hotel_id = h.id 
+            WHERE u.phone = ?
+        ");
+        $stmt->execute([$phone]);
+        return $stmt->fetch();
+    }
+    
+    /**
+     * Check if phone exists
+     */
+    public function phoneExists($phone, $excludeId = null) {
+        $sql = "SELECT COUNT(*) FROM users WHERE phone = ?";
+        $params = [$phone];
+        
+        if ($excludeId) {
+            $sql .= " AND id != ?";
+            $params[] = $excludeId;
+        }
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchColumn() > 0;
+    }
 }

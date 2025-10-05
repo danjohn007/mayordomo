@@ -87,12 +87,13 @@ class ReservationsController extends BaseController {
         }
         
         $type = sanitize($_GET['type'] ?? 'room');
-        $table = $type === 'room' ? 'room_reservations' : 'table_reservations';
+        $table = $type === 'room' ? 'room_reservations' : ($type === 'table' ? 'table_reservations' : 'amenity_reservations');
         
         try {
             $stmt = $this->db->prepare("UPDATE {$table} SET status = 'confirmed' WHERE id = ?");
             $stmt->execute([$id]);
             
+            // For tables and amenities, the trigger will automatically create a 2-hour block
             flash('success', 'Reservación confirmada exitosamente', 'success');
         } catch (Exception $e) {
             flash('error', 'Error al confirmar la reservación: ' . $e->getMessage(), 'danger');
@@ -236,7 +237,7 @@ class ReservationsController extends BaseController {
         }
         
         $type = sanitize($_POST['type'] ?? 'room');
-        $table = $type === 'room' ? 'room_reservations' : 'table_reservations';
+        $table = $type === 'room' ? 'room_reservations' : ($type === 'table' ? 'table_reservations' : 'amenity_reservations');
         
         try {
             // En lugar de eliminar, cambiar estado a cancelled

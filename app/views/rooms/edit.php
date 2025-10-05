@@ -94,12 +94,18 @@
                                 <div class="col-md-3">
                                     <div class="card">
                                         <img src="<?= BASE_URL ?>/<?= e($img['image_path']) ?>" class="card-img-top" alt="Imagen" style="height: 100px; object-fit: cover;">
-                                        <div class="card-body p-2 text-center">
-                                            <?php if ($img['is_primary']): ?>
-                                                <span class="badge bg-success">Principal</span>
-                                            <?php endif; ?>
+                                        <div class="card-body p-2">
+                                            <form method="POST" action="<?= BASE_URL ?>/rooms/setPrimaryImage/<?= $img['id'] ?>" style="display: inline;">
+                                                <?php if ($img['is_primary']): ?>
+                                                    <span class="badge bg-success w-100 mb-1">Principal</span>
+                                                <?php else: ?>
+                                                    <button type="submit" class="btn btn-sm btn-outline-primary w-100 mb-1">
+                                                        <i class="bi bi-star"></i> Hacer Principal
+                                                    </button>
+                                                <?php endif; ?>
+                                            </form>
                                             <form method="POST" action="<?= BASE_URL ?>/rooms/deleteImage/<?= $img['id'] ?>" style="display: inline;" onsubmit="return confirm('¿Eliminar esta imagen?')">
-                                                <button type="submit" class="btn btn-sm btn-danger mt-1"><i class="bi bi-trash"></i></button>
+                                                <button type="submit" class="btn btn-sm btn-danger w-100"><i class="bi bi-trash"></i> Eliminar</button>
                                             </form>
                                         </div>
                                     </div>

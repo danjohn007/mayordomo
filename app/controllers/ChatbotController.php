@@ -128,6 +128,10 @@ class ChatbotController extends BaseController {
             'guest_phone' => sanitize($_POST['guest_phone'] ?? ''),
             'check_in_date' => sanitize($_POST['check_in_date'] ?? ''),
             'check_out_date' => sanitize($_POST['check_out_date'] ?? ''),
+            'reservation_time' => sanitize($_POST['reservation_time'] ?? ''),
+            'room_number' => sanitize($_POST['room_number'] ?? ''),
+            'is_visitor' => isset($_POST['is_visitor']) ? 1 : 0,
+            'party_size' => intval($_POST['party_size'] ?? 2),
             'notes' => sanitize($_POST['notes'] ?? '')
         ];
         
@@ -150,6 +154,16 @@ class ChatbotController extends BaseController {
             $errors[] = 'La fecha de inicio es requerida';
         }
         
+        // Validate time for tables and amenities
+        if (($data['resource_type'] === 'table' || $data['resource_type'] === 'amenity') && empty($data['reservation_time'])) {
+            $errors[] = 'La hora de reservación es requerida';
+        }
+        
+        // Validate room number or visitor status for rooms
+        if ($data['resource_type'] === 'room' && !$data['is_visitor'] && empty($data['room_number'])) {
+            $errors[] = 'El número de habitación es requerido para huéspedes';
+        }
+        
         if (!empty($errors)) {
             echo json_encode(['success' => false, 'message' => implode(', ', $errors)]);
             exit;
@@ -159,59 +173,114 @@ class ChatbotController extends BaseController {
         try {
             $this->db->beginTransaction();
             
+            // Check if user exists by phone, if not create as guest
+            $userModel = $this->model('User');
+            $user = $userModel->findByPhone($data['guest_phone']);
+            $guestId = null;
+            
+            if (!$user) {
+                // Create new user as guest
+                $randomPassword = bin2hex(random_bytes(8)); // Generate random 16-char password
+                $userData = [
+                    'email' => $data['guest_email'],
+                    'password' => $randomPassword,
+                    'first_name' => explode(' ', $data['guest_name'])[0],
+                    'last_name' => implode(' ', array_slice(explode(' ', $data['guest_name']), 1)),
+                    'phone' => $data['guest_phone'],
+                    'role' => 'guest',
+                    'hotel_id' => $data['hotel_id'],
+                    'is_active' => 1
+                ];
+                
+                // Check if email already exists
+                if (!$userModel->emailExists($data['guest_email'])) {
+                    if ($userModel->create($userData)) {
+                        $guestId = $this->db->lastInsertId();
+                    }
+                } else {
+                    // Email exists, use existing user
+                    $user = $userModel->findByEmail($data['guest_email']);
+                    $guestId = $user['id'];
+                }
+            } else {
+                $guestId = $user['id'];
+            }
+            
             if ($data['resource_type'] === 'room') {
                 // Create room reservation
-                // Note: guest_id is set to NULL for anonymous chatbot reservations
                 $stmt = $this->db->prepare("
                     INSERT INTO room_reservations 
                     (hotel_id, room_id, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, total_price, status, special_requests)
-                    VALUES (?, ?, NULL, ?, ?, ?, ?, ?, 0, 'pending', ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 'pending', ?)
                 ");
+                $specialRequests = $data['notes'];
+                if (!$data['is_visitor'] && !empty($data['room_number'])) {
+                    $specialRequests = 'Habitación: ' . $data['room_number'] . '. ' . $specialRequests;
+                } elseif ($data['is_visitor']) {
+                    $specialRequests = 'VISITA. ' . $specialRequests;
+                }
+                
                 $stmt->execute([
                     $data['hotel_id'],
                     $data['resource_id'],
+                    $guestId,
                     $data['guest_name'],
                     $data['guest_email'],
                     $data['guest_phone'],
                     $data['check_in_date'],
                     $data['check_out_date'],
-                    $data['notes']
+                    $specialRequests
                 ]);
             } elseif ($data['resource_type'] === 'table') {
                 // Create table reservation
-                // Note: guest_id is set to NULL for anonymous chatbot reservations
                 $stmt = $this->db->prepare("
                     INSERT INTO table_reservations 
                     (hotel_id, table_id, guest_id, guest_name, guest_email, guest_phone, reservation_date, reservation_time, party_size, status, notes)
-                    VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, 'pending', ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
                 ");
+                $notes = $data['notes'];
+                if (!$data['is_visitor'] && !empty($data['room_number'])) {
+                    $notes = 'Habitación: ' . $data['room_number'] . '. ' . $notes;
+                } elseif ($data['is_visitor']) {
+                    $notes = 'VISITA. ' . $notes;
+                }
+                
                 $stmt->execute([
                     $data['hotel_id'],
                     $data['resource_id'],
+                    $guestId,
                     $data['guest_name'],
                     $data['guest_email'],
                     $data['guest_phone'],
                     $data['check_in_date'],
-                    '19:00:00', // Default time
-                    2, // Default party size
-                    $data['notes']
+                    $data['reservation_time'],
+                    $data['party_size'],
+                    $notes
                 ]);
             } elseif ($data['resource_type'] === 'amenity') {
                 // Create amenity reservation
                 $stmt = $this->db->prepare("
                     INSERT INTO amenity_reservations 
-                    (hotel_id, amenity_id, guest_name, guest_email, guest_phone, reservation_date, reservation_time, status, notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+                    (hotel_id, amenity_id, user_id, guest_name, guest_email, guest_phone, reservation_date, reservation_time, status, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
                 ");
+                $notes = $data['notes'];
+                if (!$data['is_visitor'] && !empty($data['room_number'])) {
+                    $notes = 'Habitación: ' . $data['room_number'] . '. ' . $notes;
+                } elseif ($data['is_visitor']) {
+                    $notes = 'VISITA. ' . $notes;
+                }
+                
                 $stmt->execute([
                     $data['hotel_id'],
                     $data['resource_id'],
+                    $guestId,
                     $data['guest_name'],
                     $data['guest_email'],
                     $data['guest_phone'],
                     $data['check_in_date'],
-                    '10:00:00', // Default time
-                    $data['notes']
+                    $data['reservation_time'],
+                    $notes
                 ]);
             }
             

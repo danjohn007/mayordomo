@@ -119,6 +119,39 @@ class AmenitiesController extends BaseController {
         
         $model = $this->model('Amenity');
         if ($model->update($id, $data)) {
+            // Handle new image uploads
+            if (!empty($_FILES['images']['name'][0])) {
+                $uploadDir = PUBLIC_PATH . '/uploads/amenities/';
+                $imageModel = $this->model('ResourceImage');
+                
+                // Get current image count
+                $existingImages = $imageModel->getByResource('amenity', $id);
+                $startOrder = count($existingImages);
+                
+                foreach ($_FILES['images']['name'] as $key => $fileName) {
+                    if ($_FILES['images']['error'][$key] === UPLOAD_ERR_OK) {
+                        $tmpName = $_FILES['images']['tmp_name'][$key];
+                        $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+                        $allowedExts = ['jpg', 'jpeg', 'png', 'gif'];
+                        
+                        if (in_array($fileExt, $allowedExts)) {
+                            $newFileName = 'amenity_' . $id . '_' . uniqid() . '.' . $fileExt;
+                            $uploadPath = $uploadDir . $newFileName;
+                            
+                            if (move_uploaded_file($tmpName, $uploadPath)) {
+                                $imageModel->create([
+                                    'resource_type' => 'amenity',
+                                    'resource_id' => $id,
+                                    'image_path' => 'uploads/amenities/' . $newFileName,
+                                    'display_order' => $startOrder + $key,
+                                    'is_primary' => (empty($existingImages) && $key === 0) ? 1 : 0
+                                ]);
+                            }
+                        }
+                    }
+                }
+            }
+            
             flash('success', 'Amenidad actualizada exitosamente', 'success');
         } else {
             flash('error', 'Error al actualizar la amenidad', 'danger');
@@ -137,5 +170,57 @@ class AmenitiesController extends BaseController {
             flash('error', 'Error al eliminar la amenidad', 'danger');
         }
         redirect('amenities');
+    }
+    
+    /**
+     * Delete amenity image
+     */
+    public function deleteImage($imageId) {
+        $this->requireRole(['admin', 'manager']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('amenities');
+        }
+        
+        $imageModel = $this->model('ResourceImage');
+        if ($imageModel->delete($imageId)) {
+            flash('success', 'Imagen eliminada exitosamente', 'success');
+        } else {
+            flash('error', 'Error al eliminar la imagen', 'danger');
+        }
+        
+        $referer = $_SERVER['HTTP_REFERER'] ?? BASE_URL . '/amenities';
+        header('Location: ' . $referer);
+        exit;
+    }
+    
+    /**
+     * Set primary image for amenity
+     */
+    public function setPrimaryImage($imageId) {
+        $this->requireRole(['admin', 'manager']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('amenities');
+        }
+        
+        $imageModel = $this->model('ResourceImage');
+        $stmt = $this->db->prepare("SELECT resource_type, resource_id FROM resource_images WHERE id = ?");
+        $stmt->execute([$imageId]);
+        $image = $stmt->fetch();
+        
+        if ($image && $image['resource_type'] === 'amenity') {
+            if ($imageModel->setPrimary($imageId, 'amenity', $image['resource_id'])) {
+                flash('success', 'Imagen principal actualizada exitosamente', 'success');
+            } else {
+                flash('error', 'Error al actualizar la imagen principal', 'danger');
+            }
+        } else {
+            flash('error', 'Imagen no encontrada', 'danger');
+        }
+        
+        $referer = $_SERVER['HTTP_REFERER'] ?? BASE_URL . '/amenities';
+        header('Location: ' . $referer);
+        exit;
     }
 }

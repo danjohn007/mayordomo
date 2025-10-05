@@ -314,4 +314,36 @@ class RoomsController extends BaseController {
         header('Location: ' . $referer);
         exit;
     }
+    
+    /**
+     * Set primary image for room
+     */
+    public function setPrimaryImage($imageId) {
+        $this->requireRole(['admin', 'manager']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('rooms');
+        }
+        
+        // Get image to determine resource
+        $imageModel = $this->model('ResourceImage');
+        $stmt = $this->db->prepare("SELECT resource_type, resource_id FROM resource_images WHERE id = ?");
+        $stmt->execute([$imageId]);
+        $image = $stmt->fetch();
+        
+        if ($image && $image['resource_type'] === 'room') {
+            if ($imageModel->setPrimary($imageId, 'room', $image['resource_id'])) {
+                flash('success', 'Imagen principal actualizada exitosamente', 'success');
+            } else {
+                flash('error', 'Error al actualizar la imagen principal', 'danger');
+            }
+        } else {
+            flash('error', 'Imagen no encontrada', 'danger');
+        }
+        
+        // Redirect back to edit page
+        $referer = $_SERVER['HTTP_REFERER'] ?? BASE_URL . '/rooms';
+        header('Location: ' . $referer);
+        exit;
+    }
 }

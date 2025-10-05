@@ -123,6 +123,42 @@
                                pattern="[0-9]{10}" maxlength="10" placeholder="10 dígitos" required>
                         <small class="text-muted">Debe contener exactamente 10 dígitos</small>
                     </div>
+                    
+                    <!-- Room/Visitor Information -->
+                    <div id="guestTypeSection" class="mb-2" style="display: none;">
+                        <label class="form-label">¿Eres huésped del hotel o visita?</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="guest_type" id="guest_type_guest" value="guest" checked onchange="toggleRoomNumber()">
+                            <label class="form-check-label" for="guest_type_guest">
+                                Soy huésped
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="guest_type" id="guest_type_visitor" value="visitor" onchange="toggleRoomNumber()">
+                            <label class="form-check-label" for="guest_type_visitor">
+                                Soy visita
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="roomNumberField" class="mb-2" style="display: none;">
+                        <label class="form-label">Número de habitación *</label>
+                        <input type="text" class="form-control" id="room_number" name="room_number" placeholder="Ej: 101">
+                    </div>
+                    
+                    <!-- Time Selection for Tables and Amenities -->
+                    <div id="timeSection" class="mb-2" style="display: none;">
+                        <label class="form-label">Hora de reservación *</label>
+                        <input type="time" class="form-control" id="reservation_time" name="reservation_time">
+                        <small class="text-muted">Se bloqueará automáticamente por 2 horas si se aprueba</small>
+                    </div>
+                    
+                    <!-- Party Size for Tables -->
+                    <div id="partySizeField" class="mb-2" style="display: none;">
+                        <label class="form-label">Número de personas</label>
+                        <input type="number" class="form-control" id="party_size" name="party_size" min="1" value="2">
+                    </div>
+                    
                     <div class="mb-2">
                         <label class="form-label">Notas adicionales</label>
                         <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
@@ -254,6 +290,42 @@
             
             document.getElementById('resourcesSection').style.display = 'none';
             document.getElementById('contactSection').style.display = 'block';
+            
+            // Show appropriate fields based on resource type
+            if (selectedResourceType === 'room') {
+                // Don't show guest type section for room reservations
+                document.getElementById('guestTypeSection').style.display = 'none';
+                document.getElementById('roomNumberField').style.display = 'none';
+                document.getElementById('timeSection').style.display = 'none';
+                document.getElementById('partySizeField').style.display = 'none';
+            } else if (selectedResourceType === 'table') {
+                document.getElementById('guestTypeSection').style.display = 'block';
+                document.getElementById('timeSection').style.display = 'block';
+                document.getElementById('partySizeField').style.display = 'block';
+                document.getElementById('reservation_time').required = true;
+                toggleRoomNumber();
+            } else if (selectedResourceType === 'amenity') {
+                document.getElementById('guestTypeSection').style.display = 'block';
+                document.getElementById('timeSection').style.display = 'block';
+                document.getElementById('partySizeField').style.display = 'none';
+                document.getElementById('reservation_time').required = true;
+                toggleRoomNumber();
+            }
+        }
+        
+        function toggleRoomNumber() {
+            const guestType = document.querySelector('input[name="guest_type"]:checked').value;
+            const roomNumberField = document.getElementById('roomNumberField');
+            const roomNumberInput = document.getElementById('room_number');
+            
+            if (guestType === 'guest') {
+                roomNumberField.style.display = 'block';
+                roomNumberInput.required = true;
+            } else {
+                roomNumberField.style.display = 'none';
+                roomNumberInput.required = false;
+                roomNumberInput.value = '';
+            }
         }
 
         function submitReservation(event) {
@@ -263,6 +335,12 @@
             formData.append('hotel_id', hotelId);
             formData.append('check_in_date', document.getElementById('check_in_date').value);
             formData.append('check_out_date', document.getElementById('check_out_date').value);
+            
+            // Add visitor flag
+            const guestTypeRadio = document.querySelector('input[name="guest_type"]:checked');
+            if (guestTypeRadio && guestTypeRadio.value === 'visitor') {
+                formData.append('is_visitor', '1');
+            }
             
             fetch(baseUrl + '/chatbot/createReservation', {
                 method: 'POST',
