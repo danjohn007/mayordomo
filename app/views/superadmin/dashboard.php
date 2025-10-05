@@ -123,6 +123,79 @@
                 </div>
             </div>
             
+            <!-- Recent Hotels and Subscription Distribution -->
+            <div class="row mb-4">
+                <!-- Recent Hotels -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-building"></i> Hoteles Recientes</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Hotel</th>
+                                            <th>Propietario</th>
+                                            <th>Fecha</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php if (!empty($stats['recent_hotels'])): ?>
+                                            <?php foreach ($stats['recent_hotels'] as $hotel): ?>
+                                            <tr>
+                                                <td><strong><?= e($hotel['name']) ?></strong></td>
+                                                <td>
+                                                    <?= e($hotel['owner_name']) ?><br>
+                                                    <small class="text-muted"><?= e($hotel['email']) ?></small>
+                                                </td>
+                                                <td><?= formatDate($hotel['created_at']) ?></td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <tr>
+                                                <td colspan="3" class="text-center text-muted">No hay hoteles registrados</td>
+                                            </tr>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Subscription Distribution -->
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Distribución de Suscripciones</h5>
+                        </div>
+                        <div class="card-body">
+                            <?php if (!empty($stats['subscription_distribution'])): ?>
+                                <?php foreach ($stats['subscription_distribution'] as $plan): ?>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span><strong><?= e($plan['name']) ?></strong></span>
+                                        <span><?= $plan['count'] ?> (<?= $plan['percentage'] ?>%)</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-primary" role="progressbar" 
+                                             style="width: <?= $plan['percentage'] ?>%" 
+                                             aria-valuenow="<?= $plan['percentage'] ?>" 
+                                             aria-valuemin="0" aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <p class="text-center text-muted">No hay suscripciones registradas</p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Charts -->
             <div class="row">
                 <!-- Revenue Chart -->

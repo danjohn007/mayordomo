@@ -24,6 +24,18 @@ class RestaurantTable {
             $params[] = $filters['status'];
         }
         
+        if (!empty($filters['search'])) {
+            $sql .= " AND (table_number LIKE ? OR description LIKE ?)";
+            $searchTerm = "%{$filters['search']}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        if (!empty($filters['location'])) {
+            $sql .= " AND location = ?";
+            $params[] = $filters['location'];
+        }
+        
         $sql .= " ORDER BY table_number";
         
         $stmt = $this->db->prepare($sql);

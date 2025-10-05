@@ -5,7 +5,12 @@ class ServicesController extends BaseController {
     
     public function index() {
         $user = currentUser();
-        $filters = ['hotel_id' => $user['hotel_id']];
+        $filters = [
+            'hotel_id' => $user['hotel_id'],
+            'search' => $_GET['search'] ?? '',
+            'status' => $_GET['status'] ?? '',
+            'priority' => $_GET['priority'] ?? ''
+        ];
         
         // Filter based on role
         if ($user['role'] === 'collaborator') {
@@ -19,7 +24,8 @@ class ServicesController extends BaseController {
         
         $this->view('services/index', [
             'title' => 'Solicitudes de Servicio',
-            'requests' => $requests
+            'requests' => $requests,
+            'filters' => $filters
         ]);
     }
     

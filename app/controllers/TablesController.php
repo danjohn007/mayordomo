@@ -12,7 +12,9 @@ class TablesController extends BaseController {
         $user = currentUser();
         $filters = [
             'hotel_id' => $user['hotel_id'],
-            'status' => $_GET['status'] ?? ''
+            'status' => $_GET['status'] ?? '',
+            'search' => $_GET['search'] ?? '',
+            'location' => $_GET['location'] ?? ''
         ];
         
         $model = $this->model('RestaurantTable');

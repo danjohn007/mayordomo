@@ -121,7 +121,14 @@ class User {
             $params[] = $filters['hotel_id'];
         }
         
-        if (isset($filters['is_active'])) {
+        if (!empty($filters['search'])) {
+            $sql .= " AND (CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR u.email LIKE ?)";
+            $searchTerm = "%{$filters['search']}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        if (isset($filters['is_active']) && $filters['is_active'] !== '') {
             $sql .= " AND u.is_active = ?";
             $params[] = $filters['is_active'];
         }

@@ -25,6 +25,14 @@
                         </div>
                     <?php endif; ?>
                     
+                    <?php if (!empty($referrerName)): ?>
+                        <div class="alert alert-info">
+                            <i class="bi bi-person-check"></i>
+                            <strong>¡Has sido recomendado!</strong><br>
+                            <?= e($referrerName) ?> te ha recomendado usar MajorBot.
+                        </div>
+                    <?php endif; ?>
+                    
                     <form action="<?= BASE_URL ?>/auth/processLogin" method="POST">
                         <div class="mb-3">
                             <label for="email" class="form-label">Email</label>

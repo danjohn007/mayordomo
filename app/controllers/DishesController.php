@@ -12,7 +12,9 @@ class DishesController extends BaseController {
         $user = currentUser();
         $filters = [
             'hotel_id' => $user['hotel_id'],
-            'category' => $_GET['category'] ?? ''
+            'category' => $_GET['category'] ?? '',
+            'search' => $_GET['search'] ?? '',
+            'is_available' => $_GET['is_available'] ?? ''
         ];
         
         $model = $this->model('Dish');

@@ -29,7 +29,18 @@
                         </div>
                     <?php endif; ?>
                     
+                    <?php if (!empty($referrerName)): ?>
+                        <div class="alert alert-info">
+                            <i class="bi bi-person-check"></i>
+                            <strong>¡Has sido recomendado!</strong><br>
+                            <?= e($referrerName) ?> te ha recomendado usar MajorBot.
+                        </div>
+                    <?php endif; ?>
+                    
                     <form action="<?= BASE_URL ?>/auth/processRegister" method="POST" enctype="multipart/form-data">
+                        <?php if (!empty($referralCode)): ?>
+                            <input type="hidden" name="referral_code" value="<?= e($referralCode) ?>">
+                        <?php endif; ?>
                         <div class="mb-3">
                             <label for="hotel_name" class="form-label">Nombre del Hotel o Alojamiento *</label>
                             <input type="text" class="form-control" id="hotel_name" name="hotel_name" required placeholder="Ej: Hotel Paradise">

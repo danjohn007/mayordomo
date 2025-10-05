@@ -12,7 +12,9 @@ class AmenitiesController extends BaseController {
         $user = currentUser();
         $filters = [
             'hotel_id' => $user['hotel_id'],
-            'category' => $_GET['category'] ?? ''
+            'category' => $_GET['category'] ?? '',
+            'search' => $_GET['search'] ?? '',
+            'is_active' => $_GET['is_active'] ?? ''
         ];
         
         $model = $this->model('Amenity');

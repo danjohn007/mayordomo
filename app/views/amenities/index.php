@@ -9,6 +9,47 @@
 
 <?php if ($flash = flash('success')) echo '<div class="alert alert-' . $flash['type'] . ' alert-dismissible fade show">' . $flash['message'] . '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>'; ?>
 
+<!-- Filters -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Buscar</label>
+                <input type="text" class="form-control" name="search" 
+                       placeholder="Nombre o descripción..." 
+                       value="<?= e($filters['search'] ?? '') ?>">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Categoría</label>
+                <select class="form-select" name="category">
+                    <option value="">Todas</option>
+                    <option value="gym" <?= ($filters['category'] ?? '') === 'gym' ? 'selected' : '' ?>>Gimnasio</option>
+                    <option value="pool" <?= ($filters['category'] ?? '') === 'pool' ? 'selected' : '' ?>>Piscina</option>
+                    <option value="spa" <?= ($filters['category'] ?? '') === 'spa' ? 'selected' : '' ?>>Spa</option>
+                    <option value="parking" <?= ($filters['category'] ?? '') === 'parking' ? 'selected' : '' ?>>Estacionamiento</option>
+                    <option value="other" <?= ($filters['category'] ?? '') === 'other' ? 'selected' : '' ?>>Otros</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Disponibilidad</label>
+                <select class="form-select" name="is_active">
+                    <option value="">Todos</option>
+                    <option value="1" <?= ($filters['is_active'] ?? '') === '1' ? 'selected' : '' ?>>Disponible</option>
+                    <option value="0" <?= ($filters['is_active'] ?? '') === '0' ? 'selected' : '' ?>>No Disponible</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Buscar
+                </button>
+                <a href="<?= BASE_URL ?>/amenities" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-body">
         <?php if (!empty($amenities)): ?>
