@@ -50,6 +50,9 @@ class UsersController extends BaseController {
         if (empty($data['email']) || !isValidEmail($data['email'])) {
             $errors[] = 'Email inválido';
         }
+        if (empty($data['phone']) || !preg_match('/^[0-9]{10}$/', $data['phone'])) {
+            $errors[] = 'El teléfono debe contener exactamente 10 dígitos';
+        }
         if (strlen($data['password']) < 6) {
             $errors[] = 'La contraseña debe tener al menos 6 caracteres';
         }

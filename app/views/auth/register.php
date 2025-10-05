@@ -65,8 +65,9 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label for="phone" class="form-label">Teléfono</label>
-                            <input type="tel" class="form-control" id="phone" name="phone">
+                            <label for="phone" class="form-label">Teléfono *</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" required pattern="[0-9]{10}" maxlength="10" placeholder="10 dígitos">
+                            <small class="text-muted">Debe contener exactamente 10 dígitos</small>
                         </div>
                         
                         <div class="row">

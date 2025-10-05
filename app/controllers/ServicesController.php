@@ -84,4 +84,57 @@ class ServicesController extends BaseController {
         }
         redirect('services');
     }
+    
+    public function edit($id) {
+        $this->requireRole(['admin', 'manager']);
+        
+        $model = $this->model('ServiceRequest');
+        $service = $model->findById($id);
+        
+        if (!$service) {
+            flash('error', 'Solicitud no encontrada', 'danger');
+            redirect('services');
+        }
+        
+        $this->view('services/edit', [
+            'title' => 'Editar Solicitud',
+            'service' => $service
+        ]);
+    }
+    
+    public function update($id) {
+        $this->requireRole(['admin', 'manager']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') redirect('services');
+        
+        $data = [
+            'title' => sanitize($_POST['title'] ?? ''),
+            'description' => sanitize($_POST['description'] ?? ''),
+            'priority' => sanitize($_POST['priority'] ?? 'normal'),
+            'room_number' => sanitize($_POST['room_number'] ?? ''),
+            'status' => sanitize($_POST['status'] ?? 'pending')
+        ];
+        
+        $model = $this->model('ServiceRequest');
+        if ($model->update($id, $data)) {
+            flash('success', 'Solicitud actualizada exitosamente', 'success');
+        } else {
+            flash('error', 'Error al actualizar la solicitud', 'danger');
+        }
+        redirect('services');
+    }
+    
+    public function cancel($id) {
+        $this->requireRole(['admin', 'manager']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') redirect('services');
+        
+        $model = $this->model('ServiceRequest');
+        if ($model->updateStatus($id, 'cancelled')) {
+            flash('success', 'Solicitud cancelada exitosamente', 'success');
+        } else {
+            flash('error', 'Error al cancelar la solicitud', 'danger');
+        }
+        redirect('services');
+    }
 }
