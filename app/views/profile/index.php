@@ -139,7 +139,7 @@
                             </div>
                             
                             <?php if ($user['role'] === 'admin'): ?>
-                            <a href="<?= BASE_URL ?>/admin/subscription" class="btn btn-primary">
+                            <a href="<?= BASE_URL ?>/subscription" class="btn btn-primary">
                                 <i class="bi bi-arrow-up-circle"></i> Actualizar Plan
                             </a>
                             <?php endif; ?>

@@ -15,7 +15,7 @@
                     $trialDays = $trialDays ?? 30;
                     if ($trialDays > 0): 
                     ?>
-                    <div class="alert alert-success mb-3">
+                    <div class="alert alert-success alert-permanent mb-3">
                         <i class="bi bi-gift"></i> 
                         <strong>¡Prueba gratis por <?= $trialDays ?> días!</strong><br>
                         Puedes usar MajorBot completamente gratis durante tu período de prueba.
