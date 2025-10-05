@@ -103,6 +103,37 @@ class RoomsController extends BaseController {
         
         // Create room
         if ($roomModel->create($data)) {
+            $roomId = $this->db->lastInsertId();
+            
+            // Handle image uploads
+            if (!empty($_FILES['images']['name'][0])) {
+                $uploadDir = PUBLIC_PATH . '/uploads/rooms/';
+                $imageModel = $this->model('ResourceImage');
+                
+                foreach ($_FILES['images']['name'] as $key => $fileName) {
+                    if ($_FILES['images']['error'][$key] === UPLOAD_ERR_OK) {
+                        $tmpName = $_FILES['images']['tmp_name'][$key];
+                        $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+                        $allowedExts = ['jpg', 'jpeg', 'png', 'gif'];
+                        
+                        if (in_array($fileExt, $allowedExts)) {
+                            $newFileName = 'room_' . $roomId . '_' . uniqid() . '.' . $fileExt;
+                            $uploadPath = $uploadDir . $newFileName;
+                            
+                            if (move_uploaded_file($tmpName, $uploadPath)) {
+                                $imageModel->create([
+                                    'resource_type' => 'room',
+                                    'resource_id' => $roomId,
+                                    'image_path' => 'uploads/rooms/' . $newFileName,
+                                    'display_order' => $key,
+                                    'is_primary' => ($key === 0) ? 1 : 0
+                                ]);
+                            }
+                        }
+                    }
+                }
+            }
+            
             flash('success', 'Habitación creada exitosamente', 'success');
             redirect('rooms');
         } else {
@@ -193,6 +224,39 @@ class RoomsController extends BaseController {
         
         // Update room
         if ($roomModel->update($id, $data)) {
+            // Handle new image uploads
+            if (!empty($_FILES['images']['name'][0])) {
+                $uploadDir = PUBLIC_PATH . '/uploads/rooms/';
+                $imageModel = $this->model('ResourceImage');
+                
+                // Get current image count
+                $existingImages = $imageModel->getByResource('room', $id);
+                $startOrder = count($existingImages);
+                
+                foreach ($_FILES['images']['name'] as $key => $fileName) {
+                    if ($_FILES['images']['error'][$key] === UPLOAD_ERR_OK) {
+                        $tmpName = $_FILES['images']['tmp_name'][$key];
+                        $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+                        $allowedExts = ['jpg', 'jpeg', 'png', 'gif'];
+                        
+                        if (in_array($fileExt, $allowedExts)) {
+                            $newFileName = 'room_' . $id . '_' . uniqid() . '.' . $fileExt;
+                            $uploadPath = $uploadDir . $newFileName;
+                            
+                            if (move_uploaded_file($tmpName, $uploadPath)) {
+                                $imageModel->create([
+                                    'resource_type' => 'room',
+                                    'resource_id' => $id,
+                                    'image_path' => 'uploads/rooms/' . $newFileName,
+                                    'display_order' => $startOrder + $key,
+                                    'is_primary' => (empty($existingImages) && $key === 0) ? 1 : 0
+                                ]);
+                            }
+                        }
+                    }
+                }
+            }
+            
             flash('success', 'Habitación actualizada exitosamente', 'success');
             redirect('rooms');
         } else {
@@ -226,5 +290,28 @@ class RoomsController extends BaseController {
         }
         
         redirect('rooms');
+    }
+    
+    /**
+     * Delete room image
+     */
+    public function deleteImage($imageId) {
+        $this->requireRole(['admin', 'manager']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('rooms');
+        }
+        
+        $imageModel = $this->model('ResourceImage');
+        if ($imageModel->delete($imageId)) {
+            flash('success', 'Imagen eliminada exitosamente', 'success');
+        } else {
+            flash('error', 'Error al eliminar la imagen', 'danger');
+        }
+        
+        // Redirect back to edit page
+        $referer = $_SERVER['HTTP_REFERER'] ?? BASE_URL . '/rooms';
+        header('Location: ' . $referer);
+        exit;
     }
 }

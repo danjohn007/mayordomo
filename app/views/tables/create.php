@@ -5,7 +5,7 @@
         <div class="card">
             <div class="card-header"><h4 class="mb-0"><i class="bi bi-plus-circle"></i> Nueva Mesa</h4></div>
             <div class="card-body">
-                <form method="POST" action="<?= BASE_URL ?>/tables/store">
+                <form method="POST" action="<?= BASE_URL ?>/tables/store" enctype="multipart/form-data">
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="table_number" class="form-label">Número de Mesa *</label>
@@ -34,6 +34,11 @@
                     <div class="mb-3">
                         <label for="description" class="form-label">Descripción</label>
                         <textarea class="form-control" id="description" name="description" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="images" class="form-label">Imágenes (opcional)</label>
+                        <input type="file" class="form-control" id="images" name="images[]" accept="image/*" multiple>
+                        <small class="text-muted">Puedes seleccionar una o más imágenes (JPG, PNG, GIF)</small>
                     </div>
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Guardar</button>

@@ -14,7 +14,7 @@
                     </div>
                 <?php endif; ?>
                 
-                <form method="POST" action="<?= BASE_URL ?>/rooms/update/<?= $room['id'] ?>" class="needs-validation" novalidate>
+                <form method="POST" action="<?= BASE_URL ?>/rooms/update/<?= $room['id'] ?>" class="needs-validation" enctype="multipart/form-data" novalidate>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="room_number" class="form-label">Número de Habitación *</label>
@@ -78,6 +78,41 @@
                         <textarea class="form-control" id="amenities" name="amenities" rows="2" 
                                   placeholder="Ej: TV, WiFi, Aire acondicionado, Mini-bar"><?= e($room['amenities']) ?></textarea>
                         <small class="text-muted">Separa las amenidades con comas</small>
+                    </div>
+                    
+                    <?php
+                    // Get existing images
+                    $imageModel = getModel('ResourceImage', $db ?? null);
+                    $images = $imageModel ? $imageModel->getByResource('room', $room['id']) : [];
+                    ?>
+                    
+                    <?php if (!empty($images)): ?>
+                    <div class="mb-3">
+                        <label class="form-label">Imágenes Actuales</label>
+                        <div class="row g-2">
+                            <?php foreach ($images as $img): ?>
+                                <div class="col-md-3">
+                                    <div class="card">
+                                        <img src="<?= BASE_URL ?>/<?= e($img['image_path']) ?>" class="card-img-top" alt="Imagen" style="height: 100px; object-fit: cover;">
+                                        <div class="card-body p-2 text-center">
+                                            <?php if ($img['is_primary']): ?>
+                                                <span class="badge bg-success">Principal</span>
+                                            <?php endif; ?>
+                                            <form method="POST" action="<?= BASE_URL ?>/rooms/deleteImage/<?= $img['id'] ?>" style="display: inline;" onsubmit="return confirm('¿Eliminar esta imagen?')">
+                                                <button type="submit" class="btn btn-sm btn-danger mt-1"><i class="bi bi-trash"></i></button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    
+                    <div class="mb-3">
+                        <label for="images" class="form-label">Agregar Imágenes (opcional)</label>
+                        <input type="file" class="form-control" id="images" name="images[]" accept="image/*" multiple>
+                        <small class="text-muted">Puedes agregar más imágenes (JPG, PNG, GIF)</small>
                     </div>
                     
                     <div class="d-flex gap-2">

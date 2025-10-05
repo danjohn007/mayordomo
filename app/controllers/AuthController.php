@@ -230,6 +230,12 @@ class AuthController extends BaseController {
             $errors[] = 'Email inválido';
         }
         
+        if (empty($data['phone'])) {
+            $errors[] = 'El teléfono es requerido';
+        } elseif (!preg_match('/^[0-9]{10}$/', $data['phone'])) {
+            $errors[] = 'El teléfono debe contener exactamente 10 dígitos';
+        }
+        
         if (empty($data['password'])) {
             $errors[] = 'La contraseña es requerida';
         } elseif (strlen($data['password']) < 6) {

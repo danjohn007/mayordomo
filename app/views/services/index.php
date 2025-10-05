@@ -77,7 +77,25 @@
                                 <td><?= $req['collab_first_name'] ? e($req['collab_first_name']) . ' ' . e($req['collab_last_name']) : '-' ?></td>
                                 <td><?= formatDateTime($req['requested_at']) ?></td>
                                 <td class="action-buttons">
-                                    <?php if (hasRole(['collaborator']) && $req['assigned_to'] == currentUser()['id']): ?>
+                                    <?php if (hasRole(['admin', 'manager'])): ?>
+                                        <a href="<?= BASE_URL ?>/services/edit/<?= $req['id'] ?>" class="btn btn-sm btn-warning" title="Editar">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form method="POST" action="<?= BASE_URL ?>/services/cancel/<?= $req['id'] ?>" style="display: inline-block;" onsubmit="return confirm('¿Está seguro de cancelar esta solicitud?')">
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Cancelar">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="<?= BASE_URL ?>/services/updateStatus/<?= $req['id'] ?>" style="display: inline-block;">
+                                            <select name="status" class="form-select form-select-sm d-inline-block" style="width: auto;" onchange="this.form.submit()">
+                                                <option value="pending" <?= $req['status'] === 'pending' ? 'selected' : '' ?>>Pendiente</option>
+                                                <option value="assigned" <?= $req['status'] === 'assigned' ? 'selected' : '' ?>>Asignado</option>
+                                                <option value="in_progress" <?= $req['status'] === 'in_progress' ? 'selected' : '' ?>>En Progreso</option>
+                                                <option value="completed" <?= $req['status'] === 'completed' ? 'selected' : '' ?>>Completado</option>
+                                                <option value="cancelled" <?= $req['status'] === 'cancelled' ? 'selected' : '' ?>>Cancelado</option>
+                                            </select>
+                                        </form>
+                                    <?php elseif (hasRole(['collaborator']) && $req['assigned_to'] == currentUser()['id']): ?>
                                         <form method="POST" action="<?= BASE_URL ?>/services/updateStatus/<?= $req['id'] ?>" style="display: inline-block;">
                                             <select name="status" class="form-select form-select-sm d-inline-block" style="width: auto;" onchange="this.form.submit()">
                                                 <option value="assigned" <?= $req['status'] === 'assigned' ? 'selected' : '' ?>>Asignado</option>

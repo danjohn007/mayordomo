@@ -14,7 +14,7 @@
                     </div>
                 <?php endif; ?>
                 
-                <form method="POST" action="<?= BASE_URL ?>/rooms/store" class="needs-validation" novalidate>
+                <form method="POST" action="<?= BASE_URL ?>/rooms/store" class="needs-validation" enctype="multipart/form-data" novalidate>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="room_number" class="form-label">Número de Habitación *</label>
@@ -74,6 +74,12 @@
                         <textarea class="form-control" id="amenities" name="amenities" rows="2" 
                                   placeholder="Ej: TV, WiFi, Aire acondicionado, Mini-bar"></textarea>
                         <small class="text-muted">Separa las amenidades con comas</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="images" class="form-label">Imágenes (opcional)</label>
+                        <input type="file" class="form-control" id="images" name="images[]" accept="image/*" multiple>
+                        <small class="text-muted">Puedes seleccionar una o más imágenes (JPG, PNG, GIF). Primera imagen será la principal.</small>
                     </div>
                     
                     <div class="d-flex gap-2">
