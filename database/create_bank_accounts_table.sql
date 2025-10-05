@@ -1,18 +1,10 @@
 -- =====================================================
--- Fix for Subscription Controller Issues
--- =====================================================
--- This migration fixes two critical issues:
--- 1. Creates missing bank_accounts table (Error in line 48 of SubscriptionController.php)
--- 2. Adds missing columns to payment_transactions for subscription payments
--- 
--- Execute this script to fix the fatal error:
--- SQLSTATE[42S02]: Base table or view not found: 1146 Table 'aqh_mayordomo.bank_accounts' doesn't exist
+-- SCRIPT DE MIGRACIÓN COMPLETO Y CORREGIDO (SIN ERRORES DE COLLATION)
+-- Creación de bank_accounts y actualización dinámica de payment_transactions
+-- Compatible con MySQL 5.7+, evita errores de collations
 -- =====================================================
 
--- =====================================================
--- 1. Create bank_accounts table
--- =====================================================
-
+-- 1. Crear tabla bank_accounts si no existe
 CREATE TABLE IF NOT EXISTS bank_accounts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     bank_name VARCHAR(100) NOT NULL,
@@ -31,7 +23,7 @@ CREATE TABLE IF NOT EXISTS bank_accounts (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Cuentas bancarias para recibir pagos de suscripciones y servicios';
 
--- Insert default bank account (placeholder that can be updated by superadmin)
+-- Insertar cuenta bancaria de ejemplo si no existe ninguna
 INSERT INTO bank_accounts (bank_name, account_holder, account_number, notes, is_active)
 SELECT 
     'Banco Por Configurar' as bank_name,
@@ -43,10 +35,10 @@ FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM bank_accounts LIMIT 1);
 
 -- =====================================================
--- 2. Update payment_transactions table
+-- 2. Actualizar payment_transactions (agregar columnas, FK, índice)
 -- =====================================================
 
--- Create procedure to safely add columns if they don't exist
+-- Solución definitiva: Forzar collation de variables a utf8_unicode_ci
 DELIMITER $$
 
 DROP PROCEDURE IF EXISTS AddColumnIfNotExists$$
@@ -57,13 +49,12 @@ CREATE PROCEDURE AddColumnIfNotExists(
 )
 BEGIN
     DECLARE columnExists INT DEFAULT 0;
-    
+    -- Forzar collation de las variables a utf8_unicode_ci
     SELECT COUNT(*) INTO columnExists 
     FROM INFORMATION_SCHEMA.COLUMNS 
     WHERE TABLE_SCHEMA = DATABASE() 
-        AND TABLE_NAME = tableName 
-        AND COLUMN_NAME = columnName;
-    
+        AND TABLE_NAME COLLATE utf8_unicode_ci = tableName COLLATE utf8_unicode_ci
+        AND COLUMN_NAME COLLATE utf8_unicode_ci = columnName COLLATE utf8_unicode_ci;
     IF columnExists = 0 THEN
         SET @sql = CONCAT('ALTER TABLE ', tableName, ' ADD COLUMN ', columnName, ' ', columnDefinition);
         PREPARE stmt FROM @sql;
@@ -74,16 +65,12 @@ END$$
 
 DELIMITER ;
 
--- Add subscription_id column for subscription payments
+-- Agregar columnas faltantes
 CALL AddColumnIfNotExists('payment_transactions', 'subscription_id', 'INT NULL AFTER user_id');
-
--- Add payment_proof column to store uploaded payment proof file names
 CALL AddColumnIfNotExists('payment_transactions', 'payment_proof', 'VARCHAR(255) NULL COMMENT "Nombre del archivo de comprobante de pago"');
-
--- Add transaction_reference column for manual payment references
 CALL AddColumnIfNotExists('payment_transactions', 'transaction_reference', 'VARCHAR(255) NULL COMMENT "Referencia o folio de transacción"');
 
--- Add foreign key constraint for subscription_id (check if it exists first)
+-- Agregar clave foránea a subscription_id si no existe (sin COLLATE)
 SET @fk_exists = (
     SELECT COUNT(*)
     FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
@@ -100,7 +87,7 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- Add index for better query performance (check if it exists first)
+-- Agregar índice en subscription_id si no existe (sin COLLATE)
 SET @idx_exists = (
     SELECT COUNT(*)
     FROM INFORMATION_SCHEMA.STATISTICS
@@ -117,15 +104,13 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- Clean up procedure
+-- Limpieza: eliminar el procedimiento
 DROP PROCEDURE IF EXISTS AddColumnIfNotExists;
 
 -- =====================================================
--- 3. Synchronize subscription prices with global_settings
+-- 3. Sincronizar precios de suscripciones con global_settings
 -- =====================================================
--- This ensures prices displayed match those configured in Global Configuration
 
--- Update monthly plan price from global_settings if the setting exists
 UPDATE subscriptions s
 SET s.price = (
     SELECT CAST(setting_value AS DECIMAL(10,2))
@@ -136,7 +121,6 @@ SET s.price = (
 WHERE s.type = 'monthly' 
 AND EXISTS (SELECT 1 FROM global_settings WHERE setting_key = 'plan_monthly_price');
 
--- Update annual plan price from global_settings if the setting exists
 UPDATE subscriptions s
 SET s.price = (
     SELECT CAST(setting_value AS DECIMAL(10,2))
@@ -147,8 +131,7 @@ SET s.price = (
 WHERE s.type = 'annual'
 AND EXISTS (SELECT 1 FROM global_settings WHERE setting_key = 'plan_annual_price');
 
--- Note: If promotional prices are enabled, you may want to update accordingly
--- Uncomment the following if you want to use promotional prices when enabled:
+-- Si quieres usar precios promocionales, descomenta el siguiente bloque:
 /*
 UPDATE subscriptions s
 SET s.price = (
@@ -178,13 +161,17 @@ AND EXISTS (
 */
 
 -- =====================================================
--- 4. Activity log entry
+-- 4. Registrar actividad de la migración
 -- =====================================================
 
 INSERT INTO activity_log (user_id, action, description, created_at)
 VALUES (
     NULL,
     'database_migration',
-    'Tabla bank_accounts creada, payment_transactions actualizada y precios de suscripciones sincronizados',
+    'Tabla bank_accounts creada, payment_transactions actualizada (columnas, índice, clave foránea) y precios de suscripciones sincronizados',
     NOW()
 );
+
+-- =====================================================
+-- FIN DEL SCRIPT DE MIGRACIÓN
+-- =====================================================
