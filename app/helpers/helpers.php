@@ -344,3 +344,22 @@ function updateSetting($key, $value, $userId = null) {
 function generateReferralCode($userId) {
     return strtoupper(substr(md5($userId . time()), 0, 8));
 }
+
+/**
+ * Get model instance
+ */
+function getModel($modelName, $db = null) {
+    if ($db === null) {
+        require_once CONFIG_PATH . '/database.php';
+        $db = Database::getInstance()->getConnection();
+    }
+    
+    $modelFile = APP_PATH . '/models/' . $modelName . '.php';
+    
+    if (file_exists($modelFile)) {
+        require_once $modelFile;
+        return new $modelName($db);
+    }
+    
+    return null;
+}

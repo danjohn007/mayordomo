@@ -71,9 +71,9 @@ class ChatbotController extends BaseController {
                     WHERE room_id = ?
                       AND status IN ('confirmed', 'checked_in')
                       AND (
-                          (check_in_date <= ? AND check_out_date > ?)
-                          OR (check_in_date < ? AND check_out_date >= ?)
-                          OR (check_in_date >= ? AND check_out_date <= ?)
+                          (check_in <= ? AND check_out > ?)
+                          OR (check_in < ? AND check_out >= ?)
+                          OR (check_in >= ? AND check_out <= ?)
                       )
                 ");
                 $stmt->execute([$room['id'], $checkIn, $checkIn, $checkOut, $checkOut, $checkIn, $checkOut]);
@@ -161,10 +161,11 @@ class ChatbotController extends BaseController {
             
             if ($data['resource_type'] === 'room') {
                 // Create room reservation
+                // Note: guest_id is set to NULL for anonymous chatbot reservations
                 $stmt = $this->db->prepare("
                     INSERT INTO room_reservations 
-                    (hotel_id, room_id, guest_name, guest_email, guest_phone, check_in_date, check_out_date, status, special_requests)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+                    (hotel_id, room_id, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, total_price, status, special_requests)
+                    VALUES (?, ?, NULL, ?, ?, ?, ?, ?, 0, 'pending', ?)
                 ");
                 $stmt->execute([
                     $data['hotel_id'],
@@ -178,10 +179,11 @@ class ChatbotController extends BaseController {
                 ]);
             } elseif ($data['resource_type'] === 'table') {
                 // Create table reservation
+                // Note: guest_id is set to NULL for anonymous chatbot reservations
                 $stmt = $this->db->prepare("
                     INSERT INTO table_reservations 
-                    (hotel_id, table_id, guest_name, guest_email, guest_phone, reservation_date, reservation_time, party_size, status, notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+                    (hotel_id, table_id, guest_id, guest_name, guest_email, guest_phone, reservation_date, reservation_time, party_size, status, notes)
+                    VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, 'pending', ?)
                 ");
                 $stmt->execute([
                     $data['hotel_id'],
