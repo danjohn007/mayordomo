@@ -47,6 +47,25 @@
   - Resumen de funcionalidades
   - Links a documentación
 
+### 🔧 Para Correcciones de Suscripciones (NUEVO)
+- **[README_FIX_SUBSCRIPTION.md](README_FIX_SUBSCRIPTION.md)** - Guía de instalación de correcciones
+  - Solución al error fatal de bank_accounts
+  - Sincronización de precios
+  - Instrucciones paso a paso
+  - Verificación post-instalación
+  
+- **[MANAGE_SUBSCRIPTIONS_GUIDE.md](MANAGE_SUBSCRIPTIONS_GUIDE.md)** - Guía de gestión continua
+  - Gestión de cuentas bancarias
+  - Gestión de precios de suscripción
+  - Scripts de sincronización
+  - Ejemplos de consultas SQL
+  
+- **[verify_subscription_fix.sql](verify_subscription_fix.sql)** - Script de verificación
+  - Valida tabla bank_accounts
+  - Valida columnas de payment_transactions
+  - Valida sincronización de precios
+  - Reporte completo de estado
+
 ---
 
 ## 📁 Archivos de Base de Datos
@@ -60,6 +79,12 @@
 
 #### Para Verificación
 - **verify_migration.sql** - Validar que migración fue exitosa
+- **verify_subscription_fix.sql** ⭐ - Validar correcciones de suscripciones
+
+#### Para Correcciones y Mantenimiento ⭐ NUEVO
+- **create_bank_accounts_table.sql** - Corrige error fatal de bank_accounts y sincroniza precios
+- **README_FIX_SUBSCRIPTION.md** - Guía de instalación de correcciones
+- **MANAGE_SUBSCRIPTIONS_GUIDE.md** - Guía de gestión de suscripciones y precios
 
 ### Scripts de Automatización
 
