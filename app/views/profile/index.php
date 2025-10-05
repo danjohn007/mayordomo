@@ -148,6 +148,35 @@
                 </div>
                 <?php endif; ?>
                 
+                <!-- Chatbot Link (Admin, Manager, Hostess) -->
+                <?php if (in_array($user['role'], ['admin', 'manager', 'hostess'])): ?>
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-chat-dots"></i> Chatbot de Reservaciones</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Enlace público para que tus huéspedes puedan hacer reservaciones en línea.</p>
+                            <div class="mb-3">
+                                <strong>Enlace del Chatbot:</strong>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="chatbotLink" 
+                                           value="<?= BASE_URL ?>/chatbot/index/<?= $user['hotel_id'] ?>" readonly>
+                                    <button class="btn btn-outline-secondary" type="button" 
+                                            onclick="copyChatbotLink()">
+                                        <i class="bi bi-clipboard"></i> Copiar
+                                    </button>
+                                </div>
+                            </div>
+                            <a href="<?= BASE_URL ?>/chatbot/index/<?= $user['hotel_id'] ?>" 
+                               class="btn btn-primary" target="_blank">
+                                <i class="bi bi-box-arrow-up-right"></i> Abrir Chatbot
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+                
                 <!-- Referral Program -->
                 <div class="col-lg-6 mb-4">
                     <div class="card">
@@ -266,6 +295,13 @@ function copyReferralLink() {
     link.select();
     document.execCommand('copy');
     alert('Enlace copiado al portapapeles');
+}
+
+function copyChatbotLink() {
+    const link = document.getElementById('chatbotLink');
+    link.select();
+    document.execCommand('copy');
+    alert('Enlace del chatbot copiado al portapapeles');
 }
 </script>
 
