@@ -29,24 +29,38 @@
             <a class="navbar-brand mx-auto" href="<?= BASE_URL ?><?= hasRole(['superadmin']) ? '/superadmin' : '/dashboard' ?>">
                 <i class="bi bi-building"></i> MajorBot
             </a>
-            <div class="dropdown">
-                <button class="btn btn-primary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
-                    <i class="bi bi-person-circle"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li class="dropdown-header">
-                        <?= e(currentUser()['first_name']) ?> <?= e(currentUser()['last_name']) ?>
-                        <br><small class="text-muted"><?= e(getRoleLabel(currentUser()['role'])) ?></small>
-                    </li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="<?= BASE_URL ?>/profile">
-                        <i class="bi bi-person-circle"></i> Mi Perfil
-                    </a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="<?= BASE_URL ?>/auth/logout">
-                        <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
-                    </a></li>
-                </ul>
+            <div class="d-flex align-items-center">
+                <?php if (hasRole(['admin', 'manager', 'hostess', 'collaborator'])): ?>
+                <!-- Notification Bell -->
+                <div class="position-relative me-3">
+                    <button class="btn btn-primary" type="button" onclick="window.location.href='<?= BASE_URL ?>/notifications'">
+                        <i class="bi bi-bell"></i>
+                        <span id="notification-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">
+                            0
+                        </span>
+                    </button>
+                </div>
+                <?php endif; ?>
+                
+                <div class="dropdown">
+                    <button class="btn btn-primary dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li class="dropdown-header">
+                            <?= e(currentUser()['first_name']) ?> <?= e(currentUser()['last_name']) ?>
+                            <br><small class="text-muted"><?= e(getRoleLabel(currentUser()['role'])) ?></small>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="<?= BASE_URL ?>/profile">
+                            <i class="bi bi-person-circle"></i> Mi Perfil
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="<?= BASE_URL ?>/auth/logout">
+                            <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                        </a></li>
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>
@@ -107,6 +121,12 @@
                 </a>
                 <?php endif; ?>
                 
+                <?php if (hasRole(['admin', 'manager', 'hostess', 'collaborator'])): ?>
+                <a class="nav-link" href="<?= BASE_URL ?>/reservations">
+                    <i class="bi bi-calendar-check"></i> Reservaciones
+                </a>
+                <?php endif; ?>
+                
                 <?php if (hasRole(['hostess'])): ?>
                 <a class="nav-link" href="<?= BASE_URL ?>/blocks">
                     <i class="bi bi-lock"></i> Bloqueos
@@ -122,6 +142,12 @@
                 <?php if (hasRole(['admin', 'manager'])): ?>
                 <a class="nav-link" href="<?= BASE_URL ?>/users">
                     <i class="bi bi-people"></i> Usuarios
+                </a>
+                <?php endif; ?>
+                
+                <?php if (hasRole(['admin'])): ?>
+                <a class="nav-link" href="<?= BASE_URL ?>/roles">
+                    <i class="bi bi-shield-check"></i> Roles y Permisos
                 </a>
                 <?php endif; ?>
             </nav>

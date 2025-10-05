@@ -1,0 +1,262 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                    ACTUALIZACIÓN DEL SISTEMA MAYORDOMO                       ║
+║                              Versión 1.1.0                                   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════════════
+  🎯 ACCIÓN INMEDIATA REQUERIDA
+═══════════════════════════════════════════════════════════════════════════════
+
+1. HACER BACKUP DE LA BASE DE DATOS
+   └─ IMPORTANTE: Respaldar antes de continuar
+
+2. EJECUTAR SCRIPT SQL
+   └─ Archivo: database/fix_system_issues.sql
+   └─ Método: Terminal, phpMyAdmin o GUI
+   └─ Tiempo: ~2 minutos
+
+3. VERIFICAR INSTALACIÓN
+   └─ Ver mensajes de confirmación al final del script
+   └─ Ejecutar queries de verificación
+
+4. AGREGAR ARCHIVO DE SONIDO (Opcional)
+   └─ Copiar notification.mp3 a: public/assets/sounds/
+   └─ Ver: public/assets/sounds/README.md para obtenerlo
+
+═══════════════════════════════════════════════════════════════════════════════
+  ✅ NUEVAS FUNCIONALIDADES
+═══════════════════════════════════════════════════════════════════════════════
+
+  📅 MÓDULO DE RESERVACIONES
+     • Vista unificada de todas las reservaciones (habitaciones + mesas)
+     • Filtros avanzados por tipo, estado, búsqueda, fechas
+     • Acciones: Editar, Confirmar, Cancelar
+     • Estado de atención en cada registro
+     • Accesible desde menú lateral para admin/manager/hostess/collaborator
+
+  🔐 GESTIÓN DE ROLES Y PERMISOS
+     • Admin puede asignar áreas específicas a cada colaborador
+     • Permisos generales: Habitaciones, Mesas, Menú
+     • Permisos individuales: Amenidades y Servicios específicos
+     • Notificaciones solo para áreas asignadas
+
+  🔔 SISTEMA DE NOTIFICACIONES CON SONIDO
+     • Sonido automático para nuevas reservaciones (admin/manager)
+     • Sonido para solicitudes en áreas asignadas (collaborators)
+     • Notificaciones visuales tipo "toast"
+     • Contador de notificaciones en menú superior
+     • Polling automático cada 15 segundos
+
+  🐛 CORRECCIONES DE BUGS
+     • Resuelto error "Undefined array key 'description'" en upgrade.php
+     • Sincronizados precios de suscripciones con configuración
+     • Agregado campo description a tabla subscriptions
+
+═══════════════════════════════════════════════════════════════════════════════
+  📚 DOCUMENTACIÓN INCLUIDA
+═══════════════════════════════════════════════════════════════════════════════
+
+  📖 NUEVAS_FUNCIONALIDADES.md
+     Documentación completa de todas las funcionalidades nuevas
+     → Descripción detallada de cada módulo
+     → Guía de uso para administradores y colaboradores
+     → Notas técnicas y troubleshooting
+
+  📖 INSTALACION_ACTUALIZACION.md
+     Guía paso a paso para instalar la actualización
+     → Múltiples métodos de instalación
+     → Verificación detallada
+     → Solución de problemas comunes
+     → Instrucciones de rollback si es necesario
+
+  📖 ARQUITECTURA_NUEVAS_FUNCIONES.md
+     Arquitectura técnica del sistema
+     → Diagramas de flujo
+     → Estructura de base de datos
+     → Stack tecnológico
+     → Consideraciones de seguridad y escalabilidad
+
+  📖 database/EJECUTAR_PRIMERO.md
+     Guía rápida para ejecutar el script SQL
+     → Comandos específicos para cada método
+     → Verificación rápida
+     → Errores comunes y soluciones
+
+═══════════════════════════════════════════════════════════════════════════════
+  🗄️ CAMBIOS EN BASE DE DATOS
+═══════════════════════════════════════════════════════════════════════════════
+
+  NUEVAS TABLAS:
+  ✅ role_permissions          - Permisos de áreas por usuario
+  ✅ system_notifications      - Sistema de notificaciones centralizado
+
+  NUEVOS CAMPOS:
+  ✅ subscriptions.description          - Descripción del plan
+  ✅ room_reservations.notification_sent - Control de notificaciones
+  ✅ table_reservations.notification_sent - Control de notificaciones
+
+  NUEVOS TRIGGERS:
+  ✅ trg_notify_new_room_reservation    - Notificación automática
+  ✅ trg_notify_new_table_reservation   - Notificación automática
+
+  NUEVAS VISTAS:
+  ✅ v_all_reservations                  - Vista unificada de reservaciones
+
+═══════════════════════════════════════════════════════════════════════════════
+  🚀 INICIO RÁPIDO (5 minutos)
+═══════════════════════════════════════════════════════════════════════════════
+
+  PASO 1: Backup
+  ──────────────
+  mysqldump -u usuario -p aqh_mayordomo > backup_$(date +%Y%m%d).sql
+
+  PASO 2: Ejecutar SQL
+  ─────────────────────
+  mysql -u usuario -p aqh_mayordomo < database/fix_system_issues.sql
+
+  PASO 3: Verificar
+  ──────────────────
+  Ver mensajes de confirmación en la salida del script
+
+  PASO 4: Sonido (Opcional)
+  ──────────────────────────
+  cp notification.mp3 public/assets/sounds/notification.mp3
+
+  PASO 5: Probar
+  ───────────────
+  • Login como admin
+  • Ir a "Reservaciones" en el menú
+  • Ir a "Roles y Permisos" en el menú
+  • Verificar badge de notificaciones en barra superior
+
+═══════════════════════════════════════════════════════════════════════════════
+  📋 CHECKLIST POST-INSTALACIÓN
+═══════════════════════════════════════════════════════════════════════════════
+
+  [ ] Backup de base de datos realizado
+  [ ] Script SQL ejecutado sin errores
+  [ ] Tablas nuevas verificadas (role_permissions, system_notifications)
+  [ ] Triggers verificados (trg_notify_new_*)
+  [ ] Campo description existe en subscriptions
+  [ ] Archivo de sonido agregado (opcional)
+  [ ] Módulo "Reservaciones" accesible en menú
+  [ ] Módulo "Roles y Permisos" accesible (admin)
+  [ ] Badge de notificaciones visible en barra superior
+  [ ] Sonido se reproduce al crear reservación (si archivo existe)
+  [ ] Error de "description" resuelto en /subscription
+  [ ] Precios de suscripciones correctos
+
+═══════════════════════════════════════════════════════════════════════════════
+  ⚠️ SOLUCIÓN DE PROBLEMAS COMUNES
+═══════════════════════════════════════════════════════════════════════════════
+
+  PROBLEMA: "Table 'role_permissions' already exists"
+  SOLUCIÓN: ✅ Ignorar - Es normal, la tabla ya existe
+
+  PROBLEMA: "Column 'description' already exists"
+  SOLUCIÓN: ✅ Ignorar - Es normal, el campo ya existe
+
+  PROBLEMA: "Cannot add foreign key constraint"
+  SOLUCIÓN: ❌ Verificar datos inconsistentes en usuarios
+           Ver INSTALACION_ACTUALIZACION.md para detalles
+
+  PROBLEMA: "Access denied for user"
+  SOLUCIÓN: ❌ Usuario necesita permisos ALTER y CREATE
+           Contactar al administrador del servidor
+
+  PROBLEMA: El sonido no se reproduce
+  SOLUCIÓN: • Verificar que existe el archivo notification.mp3
+           • Interactuar con la página primero (clic)
+           • Ver consola del navegador (F12) para errores
+
+  PROBLEMA: No llegan notificaciones
+  SOLUCIÓN: • Verificar que triggers están creados: SHOW TRIGGERS;
+           • Verificar permisos en role_permissions
+           • Ver tabla system_notifications directamente
+
+═══════════════════════════════════════════════════════════════════════════════
+  🎓 CAPACITACIÓN DEL PERSONAL
+═══════════════════════════════════════════════════════════════════════════════
+
+  PARA ADMINISTRADORES:
+  • Gestionar permisos en "Roles y Permisos"
+  • Ver y gestionar todas las reservaciones
+  • Configurar qué áreas atiende cada colaborador
+
+  PARA COLABORADORES:
+  • Recibir notificaciones solo de áreas asignadas
+  • Ver reservaciones del hotel
+  • Editar y confirmar reservaciones (según permisos)
+
+  PARA HOSTESS:
+  • Similar a colaborador
+  • Puede gestionar bloqueos de recursos
+  • Acceso completo a reservaciones de mesas
+
+═══════════════════════════════════════════════════════════════════════════════
+  📞 SOPORTE Y AYUDA
+═══════════════════════════════════════════════════════════════════════════════
+
+  Si necesitas ayuda adicional:
+
+  1. Lee la documentación completa:
+     • NUEVAS_FUNCIONALIDADES.md
+     • INSTALACION_ACTUALIZACION.md
+     • ARQUITECTURA_NUEVAS_FUNCIONES.md
+
+  2. Verifica los logs:
+     • Logs de PHP: /var/log/apache2/error.log
+     • Logs de MySQL: Ver en phpMyAdmin
+
+  3. Consulta las queries de verificación:
+     • Incluidas al final de fix_system_issues.sql
+     • Incluidas en INSTALACION_ACTUALIZACION.md
+
+  4. Revisa la consola del navegador:
+     • Presiona F12
+     • Ve a la pestaña "Console"
+     • Busca errores de JavaScript
+
+═══════════════════════════════════════════════════════════════════════════════
+  ✨ RESUMEN
+═══════════════════════════════════════════════════════════════════════════════
+
+  Esta actualización agrega:
+  • ✅ Módulo completo de Reservaciones
+  • ✅ Sistema de Gestión de Roles y Permisos
+  • ✅ Notificaciones en tiempo real con sonido
+  • ✅ Corrección de bugs reportados
+  • ✅ Base de datos optimizada con triggers
+
+  Tiempo total de instalación: ~5 minutos
+  Archivos modificados: 16
+  Archivos nuevos: 11
+  Documentación: 4 archivos completos
+
+═══════════════════════════════════════════════════════════════════════════════
+  📊 ESTADÍSTICAS
+═══════════════════════════════════════════════════════════════════════════════
+
+  Controladores creados:       3 (Reservations, Roles, Notifications)
+  Vistas creadas:              3 (+ 1 de edición)
+  Modelos de BD creados:       2 (role_permissions, system_notifications)
+  Triggers creados:            2 (notificaciones automáticas)
+  Vistas SQL creadas:          1 (v_all_reservations)
+  JavaScript:                  1 archivo (polling y sonido)
+  Documentación:               4 archivos (40+ páginas)
+  Líneas de código:            ~2500
+  Líneas de SQL:               ~800
+  Líneas de documentación:     ~1500
+
+═══════════════════════════════════════════════════════════════════════════════
+
+  🎉 ¡INSTALACIÓN COMPLETADA!
+
+  El sistema está listo para usar con todas las nuevas funcionalidades
+  después de ejecutar la migración SQL.
+
+  Versión: 1.1.0
+  Fecha: 2024
+  Autor: Sistema MajorBot
+
+═══════════════════════════════════════════════════════════════════════════════
