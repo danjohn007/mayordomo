@@ -199,13 +199,14 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success && data.resources.length > 0) {
+                if (data.success && data.resources && data.resources.length > 0) {
                     displayResources(data.resources);
                 } else {
                     addMessage('Lo siento, no hay disponibilidad para esas fechas. Por favor intenta con otras fechas.');
                 }
             })
             .catch(error => {
+                console.error('Error:', error);
                 addMessage('Error al buscar disponibilidad. Por favor intenta de nuevo.');
             });
         }
@@ -277,10 +278,11 @@
                         location.reload();
                     }, 2000);
                 } else {
-                    alert(data.message);
+                    alert(data.message || 'Error al crear la reservación');
                 }
             })
             .catch(error => {
+                console.error('Error:', error);
                 alert('Error al crear la reservación. Por favor intenta de nuevo.');
             });
         }

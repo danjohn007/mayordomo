@@ -11,32 +11,34 @@ class RestaurantTable {
     }
     
     public function getAll($filters = []) {
-        $sql = "SELECT * FROM restaurant_tables WHERE 1=1";
+        $sql = "SELECT t.*,
+                (SELECT image_path FROM resource_images WHERE resource_type = 'table' AND resource_id = t.id AND is_primary = 1 LIMIT 1) as primary_image
+                FROM restaurant_tables t WHERE 1=1";
         $params = [];
         
         if (!empty($filters['hotel_id'])) {
-            $sql .= " AND hotel_id = ?";
+            $sql .= " AND t.hotel_id = ?";
             $params[] = $filters['hotel_id'];
         }
         
         if (!empty($filters['status'])) {
-            $sql .= " AND status = ?";
+            $sql .= " AND t.status = ?";
             $params[] = $filters['status'];
         }
         
         if (!empty($filters['search'])) {
-            $sql .= " AND (table_number LIKE ? OR description LIKE ?)";
+            $sql .= " AND (t.table_number LIKE ? OR t.description LIKE ?)";
             $searchTerm = "%{$filters['search']}%";
             $params[] = $searchTerm;
             $params[] = $searchTerm;
         }
         
         if (!empty($filters['location'])) {
-            $sql .= " AND location = ?";
+            $sql .= " AND t.location = ?";
             $params[] = $filters['location'];
         }
         
-        $sql .= " ORDER BY table_number";
+        $sql .= " ORDER BY t.table_number";
         
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);

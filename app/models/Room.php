@@ -14,7 +14,9 @@ class Room {
      * Get all rooms
      */
     public function getAll($filters = []) {
-        $sql = "SELECT r.*, h.name as hotel_name FROM rooms r LEFT JOIN hotels h ON r.hotel_id = h.id WHERE 1=1";
+        $sql = "SELECT r.*, h.name as hotel_name,
+                (SELECT image_path FROM resource_images WHERE resource_type = 'room' AND resource_id = r.id AND is_primary = 1 LIMIT 1) as primary_image
+                FROM rooms r LEFT JOIN hotels h ON r.hotel_id = h.id WHERE 1=1";
         $params = [];
         
         if (!empty($filters['hotel_id'])) {

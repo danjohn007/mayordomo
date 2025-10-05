@@ -221,7 +221,8 @@ class ChatbotController extends BaseController {
             ]);
         } catch (Exception $e) {
             $this->db->rollBack();
-            echo json_encode(['success' => false, 'message' => 'Error al crear la reservación']);
+            error_log('Chatbot reservation error: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Error al crear la reservación: ' . $e->getMessage()]);
         }
     }
 }

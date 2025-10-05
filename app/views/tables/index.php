@@ -56,6 +56,7 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
+                            <th>Imagen</th>
                             <th>Mesa</th>
                             <th>Capacidad</th>
                             <th>Ubicación</th>
@@ -66,6 +67,17 @@
                     <tbody>
                         <?php foreach ($tables as $table): ?>
                             <tr>
+                                <td>
+                                    <?php if (!empty($table['primary_image'])): ?>
+                                        <img src="<?= BASE_URL ?>/<?= e($table['primary_image']) ?>" 
+                                             alt="Mesa <?= e($table['table_number']) ?>" 
+                                             style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;">
+                                    <?php else: ?>
+                                        <div style="width: 60px; height: 60px; background: #e9ecef; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="bi bi-table text-muted"></i>
+                                        </div>
+                                    <?php endif; ?>
+                                </td>
                                 <td><strong><?= e($table['table_number']) ?></strong></td>
                                 <td><?= e($table['capacity']) ?> personas</td>
                                 <td><?= e($table['location']) ?></td>
