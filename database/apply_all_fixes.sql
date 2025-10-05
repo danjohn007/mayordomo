@@ -297,9 +297,7 @@ SELECT '✓ trg_amenity_reservation_notification creado' as resultado;
 -- SECTION 6: FINAL VERIFICATION
 -- ============================================================================
 
-SELECT '=' as separator;
 SELECT 'VERIFICACIÓN FINAL' as titulo;
-SELECT '=' as separator;
 
 SELECT 
     trigger_name as 'Trigger',
@@ -341,9 +339,7 @@ SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 -- COMPLETION MESSAGE
 -- ============================================================================
 
-SELECT '=' as separator;
 SELECT '✅ TODOS LOS CAMBIOS APLICADOS EXITOSAMENTE' as resultado;
-SELECT '=' as separator;
 SELECT 'Los siguientes problemas han sido resueltos:' as mensaje
 UNION ALL SELECT '1. Error 1442 en room_reservations - CORREGIDO'
 UNION ALL SELECT '2. Error 1442 en table_reservations - CORREGIDO'
@@ -352,7 +348,6 @@ UNION ALL SELECT '4. Columnas necesarias agregadas - COMPLETADO'
 UNION ALL SELECT '5. Índices optimizados - COMPLETADO'
 UNION ALL SELECT '6. Triggers recreados correctamente - COMPLETADO';
 
-SELECT '=' as separator;
 SELECT 'Próximos pasos:' as mensaje
 UNION ALL SELECT '1. Actualizar CalendarController.php'
 UNION ALL SELECT '2. Probar reservaciones desde chatbot'
