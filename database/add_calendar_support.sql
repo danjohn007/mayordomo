@@ -55,38 +55,35 @@ CREATE TRIGGER trg_amenity_reservation_notification
 AFTER INSERT ON amenity_reservations
 FOR EACH ROW
 BEGIN
-    -- Only send notification if system_notifications table exists
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'system_notifications') THEN
-        -- Insert notification for users with amenity permissions
-        INSERT INTO system_notifications (
-            hotel_id,
-            user_id,
-            notification_type,
-            title,
-            message,
-            priority,
-            requires_sound,
-            related_id
-        )
-        SELECT 
-            NEW.hotel_id,
-            rp.user_id,
-            'amenity_reservation',
-            'Nueva Reservación de Amenidad',
-            CONCAT('Reservación de ', (SELECT name FROM amenities WHERE id = NEW.amenity_id), ' para ', NEW.guest_name, ' el ', DATE_FORMAT(NEW.reservation_date, '%d/%m/%Y'), ' a las ', TIME_FORMAT(NEW.reservation_time, '%H:%i')),
-            'high',
-            1,
-            NEW.id
-        FROM role_permissions rp
-        WHERE rp.hotel_id = NEW.hotel_id
-        AND (
-            JSON_CONTAINS(rp.amenities_access, CAST(NEW.amenity_id AS JSON), '$')
-            OR rp.amenities_access = 'all'
-        );
-        
-        -- Update notification_sent flag
-        UPDATE amenity_reservations SET notification_sent = 1 WHERE id = NEW.id;
-    END IF;
+    -- Insert notification for users with amenity permissions
+    INSERT INTO system_notifications (
+        hotel_id,
+        user_id,
+        notification_type,
+        title,
+        message,
+        priority,
+        requires_sound,
+        related_id
+    )
+    SELECT 
+        NEW.hotel_id,
+        rp.user_id,
+        'amenity_reservation',
+        'Nueva Reservación de Amenidad',
+        CONCAT('Reservación de ', (SELECT name FROM amenities WHERE id = NEW.amenity_id), ' para ', NEW.guest_name, ' el ', DATE_FORMAT(NEW.reservation_date, '%d/%m/%Y'), ' a las ', TIME_FORMAT(NEW.reservation_time, '%H:%i')),
+        'high',
+        1,
+        NEW.id
+    FROM role_permissions rp
+    WHERE rp.hotel_id = NEW.hotel_id
+    AND (
+        JSON_CONTAINS(rp.amenities_access, CAST(NEW.amenity_id AS JSON), '$')
+        OR rp.amenities_access = 'all'
+    );
+
+    -- Update notification_sent flag
+    UPDATE amenity_reservations SET notification_sent = 1 WHERE id = NEW.id;
 END//
 DELIMITER ;
 
@@ -96,9 +93,10 @@ SELECT
     COUNT(*) as record_count 
 FROM amenity_reservations;
 
-SELECT 
-    'Triggers created' as status,
-    COUNT(*) as trigger_count
-FROM information_schema.triggers
-WHERE trigger_schema = DATABASE()
-AND trigger_name IN ('trg_amenity_reservation_confirmation', 'trg_amenity_reservation_notification');
+-- Triggers verification (Remove if you don't have access to information_schema)
+-- SELECT 
+--    'Triggers created' as status,
+--    COUNT(*) as trigger_count
+-- FROM information_schema.triggers
+-- WHERE trigger_schema = DATABASE()
+-- AND trigger_name IN ('trg_amenity_reservation_confirmation', 'trg_amenity_reservation_notification');
