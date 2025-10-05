@@ -10,6 +10,37 @@
                 </a>
             </div>
             
+            <div class="card mb-3">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Buscar</label>
+                            <input type="text" class="form-control" name="search" 
+                                   placeholder="Nombre, email o código..." 
+                                   value="<?= e($search ?? '') ?>">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Fecha Inicio</label>
+                            <input type="date" class="form-control" name="start_date" 
+                                   value="<?= e($startDate ?? '') ?>">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Fecha Fin</label>
+                            <input type="date" class="form-control" name="end_date" 
+                                   value="<?= e($endDate ?? '') ?>">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Buscar
+                            </button>
+                            <a href="<?= BASE_URL ?>/superadmin/loyalty" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Limpiar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
             <div class="card">
                 <div class="card-body">
                     <div class="table-responsive">

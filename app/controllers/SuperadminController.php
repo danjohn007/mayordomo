@@ -143,6 +143,35 @@ class SuperadminController extends BaseController {
         $perPage = 20;
         $offset = ($page - 1) * $perPage;
         
+        // Get filters
+        $search = $_GET['search'] ?? '';
+        $startDate = $_GET['start_date'] ?? '';
+        $endDate = $_GET['end_date'] ?? '';
+        
+        // Build query with filters
+        $where = [];
+        $params = [];
+        
+        if (!empty($search)) {
+            $where[] = "(h.name LIKE ? OR h.email LIKE ? OR CONCAT(u.first_name, ' ', u.last_name) LIKE ?)";
+            $searchTerm = "%{$search}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        if (!empty($startDate)) {
+            $where[] = "DATE(h.created_at) >= ?";
+            $params[] = $startDate;
+        }
+        
+        if (!empty($endDate)) {
+            $where[] = "DATE(h.created_at) <= ?";
+            $params[] = $endDate;
+        }
+        
+        $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+        
         // Get hotels with pagination
         $stmt = $this->db->prepare("
             SELECT h.*, 
@@ -151,14 +180,24 @@ class SuperadminController extends BaseController {
                    (SELECT COUNT(*) FROM users WHERE hotel_id = h.id) as user_count
             FROM hotels h
             LEFT JOIN users u ON h.owner_id = u.id
+            {$whereClause}
             ORDER BY h.created_at DESC
             LIMIT ? OFFSET ?
         ");
-        $stmt->execute([$perPage, $offset]);
+        $params[] = $perPage;
+        $params[] = $offset;
+        $stmt->execute($params);
         $hotels = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Get total count
-        $stmt = $this->db->query("SELECT COUNT(*) as total FROM hotels");
+        $countParams = array_slice($params, 0, -2); // Remove limit and offset
+        $stmt = $this->db->prepare("
+            SELECT COUNT(*) as total 
+            FROM hotels h
+            LEFT JOIN users u ON h.owner_id = u.id
+            {$whereClause}
+        ");
+        $stmt->execute($countParams);
         $total = $stmt->fetch()['total'];
         
         $this->view('superadmin/hotels', [
@@ -167,7 +206,10 @@ class SuperadminController extends BaseController {
             'page' => $page,
             'perPage' => $perPage,
             'total' => $total,
-            'totalPages' => ceil($total / $perPage)
+            'totalPages' => ceil($total / $perPage),
+            'search' => $search,
+            'startDate' => $startDate,
+            'endDate' => $endDate
         ]);
     }
     
@@ -178,6 +220,35 @@ class SuperadminController extends BaseController {
         $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         $perPage = 20;
         $offset = ($page - 1) * $perPage;
+        
+        // Get filters
+        $search = $_GET['search'] ?? '';
+        $startDate = $_GET['start_date'] ?? '';
+        $endDate = $_GET['end_date'] ?? '';
+        
+        // Build query with filters
+        $where = [];
+        $params = [];
+        
+        if (!empty($search)) {
+            $where[] = "(sp.name LIKE ? OR CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR h.name LIKE ?)";
+            $searchTerm = "%{$search}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        if (!empty($startDate)) {
+            $where[] = "DATE(us.created_at) >= ?";
+            $params[] = $startDate;
+        }
+        
+        if (!empty($endDate)) {
+            $where[] = "DATE(us.created_at) <= ?";
+            $params[] = $endDate;
+        }
+        
+        $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
         
         // Get subscriptions with pagination
         $stmt = $this->db->prepare("
@@ -192,14 +263,26 @@ class SuperadminController extends BaseController {
             JOIN subscription_plans sp ON us.subscription_id = sp.id
             JOIN users u ON us.user_id = u.id
             LEFT JOIN hotels h ON u.hotel_id = h.id
+            {$whereClause}
             ORDER BY us.created_at DESC
             LIMIT ? OFFSET ?
         ");
-        $stmt->execute([$perPage, $offset]);
+        $params[] = $perPage;
+        $params[] = $offset;
+        $stmt->execute($params);
         $subscriptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Get total count
-        $stmt = $this->db->query("SELECT COUNT(*) as total FROM user_subscriptions");
+        $countParams = array_slice($params, 0, -2);
+        $stmt = $this->db->prepare("
+            SELECT COUNT(*) as total 
+            FROM user_subscriptions us
+            JOIN subscription_plans sp ON us.subscription_id = sp.id
+            JOIN users u ON us.user_id = u.id
+            LEFT JOIN hotels h ON u.hotel_id = h.id
+            {$whereClause}
+        ");
+        $stmt->execute($countParams);
         $total = $stmt->fetch()['total'];
         
         $this->view('superadmin/subscriptions', [
@@ -208,7 +291,10 @@ class SuperadminController extends BaseController {
             'page' => $page,
             'perPage' => $perPage,
             'total' => $total,
-            'totalPages' => ceil($total / $perPage)
+            'totalPages' => ceil($total / $perPage),
+            'search' => $search,
+            'startDate' => $startDate,
+            'endDate' => $endDate
         ]);
     }
     
@@ -220,6 +306,35 @@ class SuperadminController extends BaseController {
         $perPage = 20;
         $offset = ($page - 1) * $perPage;
         
+        // Get filters
+        $search = $_GET['search'] ?? '';
+        $startDate = $_GET['start_date'] ?? '';
+        $endDate = $_GET['end_date'] ?? '';
+        
+        // Build query with filters
+        $where = [];
+        $params = [];
+        
+        if (!empty($search)) {
+            $where[] = "(CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR u.email LIKE ? OR h.name LIKE ?)";
+            $searchTerm = "%{$search}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        if (!empty($startDate)) {
+            $where[] = "DATE(u.created_at) >= ?";
+            $params[] = $startDate;
+        }
+        
+        if (!empty($endDate)) {
+            $where[] = "DATE(u.created_at) <= ?";
+            $params[] = $endDate;
+        }
+        
+        $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+        
         // Get users with pagination
         $stmt = $this->db->prepare("
             SELECT u.*, 
@@ -227,14 +342,24 @@ class SuperadminController extends BaseController {
                    (SELECT COUNT(*) FROM user_subscriptions WHERE user_id = u.id AND status = 'active') as active_subscriptions
             FROM users u
             LEFT JOIN hotels h ON u.hotel_id = h.id
+            {$whereClause}
             ORDER BY u.created_at DESC
             LIMIT ? OFFSET ?
         ");
-        $stmt->execute([$perPage, $offset]);
+        $params[] = $perPage;
+        $params[] = $offset;
+        $stmt->execute($params);
         $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Get total count
-        $stmt = $this->db->query("SELECT COUNT(*) as total FROM users");
+        $countParams = array_slice($params, 0, -2);
+        $stmt = $this->db->prepare("
+            SELECT COUNT(*) as total 
+            FROM users u
+            LEFT JOIN hotels h ON u.hotel_id = h.id
+            {$whereClause}
+        ");
+        $stmt->execute($countParams);
         $total = $stmt->fetch()['total'];
         
         $this->view('superadmin/users', [
@@ -243,7 +368,10 @@ class SuperadminController extends BaseController {
             'page' => $page,
             'perPage' => $perPage,
             'total' => $total,
-            'totalPages' => ceil($total / $perPage)
+            'totalPages' => ceil($total / $perPage),
+            'search' => $search,
+            'startDate' => $startDate,
+            'endDate' => $endDate
         ]);
     }
     
@@ -255,6 +383,35 @@ class SuperadminController extends BaseController {
         $perPage = 20;
         $offset = ($page - 1) * $perPage;
         
+        // Get filters
+        $search = $_GET['search'] ?? '';
+        $startDate = $_GET['start_date'] ?? '';
+        $endDate = $_GET['end_date'] ?? '';
+        
+        // Build query with filters
+        $where = [];
+        $params = [];
+        
+        if (!empty($search)) {
+            $where[] = "(CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR h.name LIKE ? OR pt.transaction_id LIKE ?)";
+            $searchTerm = "%{$search}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        if (!empty($startDate)) {
+            $where[] = "DATE(pt.created_at) >= ?";
+            $params[] = $startDate;
+        }
+        
+        if (!empty($endDate)) {
+            $where[] = "DATE(pt.created_at) <= ?";
+            $params[] = $endDate;
+        }
+        
+        $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+        
         // Get payments with pagination
         $stmt = $this->db->prepare("
             SELECT pt.*, 
@@ -264,14 +421,25 @@ class SuperadminController extends BaseController {
             FROM payment_transactions pt
             JOIN users u ON pt.user_id = u.id
             LEFT JOIN hotels h ON u.hotel_id = h.id
+            {$whereClause}
             ORDER BY pt.created_at DESC
             LIMIT ? OFFSET ?
         ");
-        $stmt->execute([$perPage, $offset]);
+        $params[] = $perPage;
+        $params[] = $offset;
+        $stmt->execute($params);
         $payments = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Get total count
-        $stmt = $this->db->query("SELECT COUNT(*) as total FROM payment_transactions");
+        $countParams = array_slice($params, 0, -2);
+        $stmt = $this->db->prepare("
+            SELECT COUNT(*) as total 
+            FROM payment_transactions pt
+            JOIN users u ON pt.user_id = u.id
+            LEFT JOIN hotels h ON u.hotel_id = h.id
+            {$whereClause}
+        ");
+        $stmt->execute($countParams);
         $total = $stmt->fetch()['total'];
         
         $this->view('superadmin/payments', [
@@ -280,7 +448,10 @@ class SuperadminController extends BaseController {
             'page' => $page,
             'perPage' => $perPage,
             'total' => $total,
-            'totalPages' => ceil($total / $perPage)
+            'totalPages' => ceil($total / $perPage),
+            'search' => $search,
+            'startDate' => $startDate,
+            'endDate' => $endDate
         ]);
     }
     
@@ -292,6 +463,35 @@ class SuperadminController extends BaseController {
         $perPage = 20;
         $offset = ($page - 1) * $perPage;
         
+        // Get filters
+        $search = $_GET['search'] ?? '';
+        $startDate = $_GET['start_date'] ?? '';
+        $endDate = $_GET['end_date'] ?? '';
+        
+        // Build query with filters
+        $where = [];
+        $params = [];
+        
+        if (!empty($search)) {
+            $where[] = "(CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR u.email LIKE ? OR lp.referral_code LIKE ?)";
+            $searchTerm = "%{$search}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        if (!empty($startDate)) {
+            $where[] = "DATE(lp.created_at) >= ?";
+            $params[] = $startDate;
+        }
+        
+        if (!empty($endDate)) {
+            $where[] = "DATE(lp.created_at) <= ?";
+            $params[] = $endDate;
+        }
+        
+        $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+        
         // Get loyalty members with pagination
         $stmt = $this->db->prepare("
             SELECT lp.*, 
@@ -300,14 +500,24 @@ class SuperadminController extends BaseController {
                    u.role as user_role
             FROM loyalty_program lp
             JOIN users u ON lp.user_id = u.id
+            {$whereClause}
             ORDER BY lp.total_earnings DESC
             LIMIT ? OFFSET ?
         ");
-        $stmt->execute([$perPage, $offset]);
+        $params[] = $perPage;
+        $params[] = $offset;
+        $stmt->execute($params);
         $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Get total count
-        $stmt = $this->db->query("SELECT COUNT(*) as total FROM loyalty_program");
+        $countParams = array_slice($params, 0, -2);
+        $stmt = $this->db->prepare("
+            SELECT COUNT(*) as total 
+            FROM loyalty_program lp
+            JOIN users u ON lp.user_id = u.id
+            {$whereClause}
+        ");
+        $stmt->execute($countParams);
         $total = $stmt->fetch()['total'];
         
         $this->view('superadmin/loyalty', [
@@ -316,7 +526,10 @@ class SuperadminController extends BaseController {
             'page' => $page,
             'perPage' => $perPage,
             'total' => $total,
-            'totalPages' => ceil($total / $perPage)
+            'totalPages' => ceil($total / $perPage),
+            'search' => $search,
+            'startDate' => $startDate,
+            'endDate' => $endDate
         ]);
     }
     
@@ -370,5 +583,92 @@ class SuperadminController extends BaseController {
         }
         
         redirect('superadmin/settings');
+    }
+    
+    /**
+     * Add Manual Payment
+     */
+    public function addPayment() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('superadmin/payments');
+        }
+        
+        try {
+            $userId = (int)$_POST['user_id'];
+            $amount = (float)$_POST['amount'];
+            $paymentMethod = sanitize($_POST['payment_method']);
+            $transactionId = sanitize($_POST['transaction_id'] ?? '');
+            $notes = sanitize($_POST['notes'] ?? '');
+            
+            // Get user's hotel_id
+            $stmt = $this->db->prepare("SELECT hotel_id FROM users WHERE id = ?");
+            $stmt->execute([$userId]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$user) {
+                flash('error', 'Usuario no encontrado', 'danger');
+                redirect('superadmin/payments');
+            }
+            
+            // Generate transaction ID if not provided
+            if (empty($transactionId)) {
+                $transactionId = 'MANUAL-' . strtoupper(uniqid());
+            }
+            
+            // Insert payment transaction
+            $stmt = $this->db->prepare("
+                INSERT INTO payment_transactions 
+                (user_id, hotel_id, amount, payment_method, transaction_id, status, notes, created_at, completed_at)
+                VALUES (?, ?, ?, ?, ?, 'completed', ?, NOW(), NOW())
+            ");
+            $stmt->execute([
+                $userId,
+                $user['hotel_id'],
+                $amount,
+                $paymentMethod,
+                $transactionId,
+                $notes
+            ]);
+            
+            flash('success', 'Pago registrado exitosamente', 'success');
+        } catch (Exception $e) {
+            flash('error', 'Error al registrar el pago: ' . $e->getMessage(), 'danger');
+        }
+        
+        redirect('superadmin/payments');
+    }
+    
+    /**
+     * Suspend User
+     */
+    public function suspendUser($userId) {
+        header('Content-Type: application/json');
+        
+        try {
+            $stmt = $this->db->prepare("UPDATE users SET is_active = 0 WHERE id = ?");
+            $stmt->execute([$userId]);
+            
+            echo json_encode(['success' => true, 'message' => 'Usuario suspendido exitosamente']);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Error al suspender el usuario']);
+        }
+        exit;
+    }
+    
+    /**
+     * Activate User
+     */
+    public function activateUser($userId) {
+        header('Content-Type: application/json');
+        
+        try {
+            $stmt = $this->db->prepare("UPDATE users SET is_active = 1 WHERE id = ?");
+            $stmt->execute([$userId]);
+            
+            echo json_encode(['success' => true, 'message' => 'Usuario activado exitosamente']);
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Error al activar el usuario']);
+        }
+        exit;
     }
 }

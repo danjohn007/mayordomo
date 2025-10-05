@@ -10,6 +10,37 @@
                 </a>
             </div>
             
+            <div class="card mb-3">
+                <div class="card-body">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Buscar</label>
+                            <input type="text" class="form-control" name="search" 
+                                   placeholder="Nombre, email o hotel..." 
+                                   value="<?= e($search ?? '') ?>">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Fecha Inicio</label>
+                            <input type="date" class="form-control" name="start_date" 
+                                   value="<?= e($startDate ?? '') ?>">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Fecha Fin</label>
+                            <input type="date" class="form-control" name="end_date" 
+                                   value="<?= e($endDate ?? '') ?>">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Buscar
+                            </button>
+                            <a href="<?= BASE_URL ?>/superadmin/users" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Limpiar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
             <div class="card">
                 <div class="card-body">
                     <div class="table-responsive">
@@ -61,12 +92,25 @@
                                         <td><?= formatDate($user['created_at']) ?></td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" title="Ver Detalles">
+                                                <a href="<?= BASE_URL ?>/superadmin/viewUser/<?= $user['id'] ?>" 
+                                                   class="btn btn-outline-primary" title="Ver Detalles">
                                                     <i class="bi bi-eye"></i>
-                                                </button>
-                                                <button class="btn btn-outline-warning" title="Editar">
+                                                </a>
+                                                <a href="<?= BASE_URL ?>/superadmin/editUser/<?= $user['id'] ?>" 
+                                                   class="btn btn-outline-warning" title="Editar">
                                                     <i class="bi bi-pencil"></i>
-                                                </button>
+                                                </a>
+                                                <?php if ($user['is_active']): ?>
+                                                    <button onclick="suspendUser(<?= $user['id'] ?>)" 
+                                                            class="btn btn-outline-danger" title="Suspender">
+                                                        <i class="bi bi-pause-circle"></i>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <button onclick="activateUser(<?= $user['id'] ?>)" 
+                                                            class="btn btn-outline-success" title="Activar">
+                                                        <i class="bi bi-play-circle"></i>
+                                                    </button>
+                                                <?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>
@@ -92,5 +136,53 @@
         </div>
     </div>
 </div>
+
+<script>
+function suspendUser(userId) {
+    if (confirm('¿Estás seguro de que deseas suspender este usuario?')) {
+        fetch('<?= BASE_URL ?>/superadmin/suspendUser/' + userId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Error al suspender el usuario');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al procesar la solicitud');
+        });
+    }
+}
+
+function activateUser(userId) {
+    if (confirm('¿Estás seguro de que deseas activar este usuario?')) {
+        fetch('<?= BASE_URL ?>/superadmin/activateUser/' + userId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Error al activar el usuario');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al procesar la solicitud');
+        });
+    }
+}
+</script>
 
 <?php require_once APP_PATH . '/views/layouts/footer.php'; ?>
