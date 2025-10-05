@@ -121,13 +121,70 @@ DEALLOCATE PREPARE stmt;
 DROP PROCEDURE IF EXISTS AddColumnIfNotExists;
 
 -- =====================================================
--- 3. Activity log entry
+-- 3. Synchronize subscription prices with global_settings
+-- =====================================================
+-- This ensures prices displayed match those configured in Global Configuration
+
+-- Update monthly plan price from global_settings if the setting exists
+UPDATE subscriptions s
+SET s.price = (
+    SELECT CAST(setting_value AS DECIMAL(10,2))
+    FROM global_settings 
+    WHERE setting_key = 'plan_monthly_price'
+    LIMIT 1
+)
+WHERE s.type = 'monthly' 
+AND EXISTS (SELECT 1 FROM global_settings WHERE setting_key = 'plan_monthly_price');
+
+-- Update annual plan price from global_settings if the setting exists
+UPDATE subscriptions s
+SET s.price = (
+    SELECT CAST(setting_value AS DECIMAL(10,2))
+    FROM global_settings 
+    WHERE setting_key = 'plan_annual_price'
+    LIMIT 1
+)
+WHERE s.type = 'annual'
+AND EXISTS (SELECT 1 FROM global_settings WHERE setting_key = 'plan_annual_price');
+
+-- Note: If promotional prices are enabled, you may want to update accordingly
+-- Uncomment the following if you want to use promotional prices when enabled:
+/*
+UPDATE subscriptions s
+SET s.price = (
+    SELECT CAST(setting_value AS DECIMAL(10,2))
+    FROM global_settings 
+    WHERE setting_key = 'promo_monthly_price'
+    LIMIT 1
+)
+WHERE s.type = 'monthly' 
+AND EXISTS (
+    SELECT 1 FROM global_settings 
+    WHERE setting_key = 'promo_enabled' AND setting_value = '1'
+);
+
+UPDATE subscriptions s
+SET s.price = (
+    SELECT CAST(setting_value AS DECIMAL(10,2))
+    FROM global_settings 
+    WHERE setting_key = 'promo_annual_price'
+    LIMIT 1
+)
+WHERE s.type = 'annual'
+AND EXISTS (
+    SELECT 1 FROM global_settings 
+    WHERE setting_key = 'promo_enabled' AND setting_value = '1'
+);
+*/
+
+-- =====================================================
+-- 4. Activity log entry
 -- =====================================================
 
 INSERT INTO activity_log (user_id, action, description, created_at)
 VALUES (
     NULL,
     'database_migration',
-    'Tabla bank_accounts creada y payment_transactions actualizada para soportar pagos de suscripciones',
+    'Tabla bank_accounts creada, payment_transactions actualizada y precios de suscripciones sincronizados',
     NOW()
 );

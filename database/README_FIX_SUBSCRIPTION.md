@@ -1,6 +1,8 @@
 # Fix para Error Fatal en Actualizar Plan
 
-## Problema
+## Problemas
+
+### 1. Error Fatal al Acceder a "Actualizar Plan"
 
 Al acceder a "Actualizar Plan" aparece el siguiente error fatal:
 
@@ -10,9 +12,15 @@ Fatal error: Uncaught PDOException: SQLSTATE[42S02]: Base table or view not foun
 /home1/aqh/public_html/majorbot/9/app/controllers/SubscriptionController.php:48
 ```
 
+### 2. Precios Mostrados No Corresponden a Configuración Global
+
+Los precios mostrados en el registro y en la página de suscripciones no corresponden a los precios establecidos en la Configuración Global del Sistema.
+
 ## Causa
 
-La tabla `bank_accounts` no existe en la base de datos, pero el código en `SubscriptionController.php` línea 48 intenta consultarla. Adicionalmente, la tabla `payment_transactions` le faltan columnas necesarias para procesar pagos de suscripciones.
+1. La tabla `bank_accounts` no existe en la base de datos, pero el código en `SubscriptionController.php` línea 48 intenta consultarla.
+2. La tabla `payment_transactions` le faltan columnas necesarias para procesar pagos de suscripciones.
+3. Los precios en la tabla `subscriptions` no están sincronizados con los valores configurados en `global_settings`.
 
 ## Solución
 
@@ -23,6 +31,9 @@ Ejecutar el script SQL `create_bank_accounts_table.sql` que:
    - `subscription_id`: Para asociar pagos con suscripciones
    - `payment_proof`: Para almacenar comprobantes de pago
    - `transaction_reference`: Para referencias de transacciones manuales
+3. **Sincroniza los precios** de la tabla `subscriptions` con los valores de `global_settings`:
+   - Lee `plan_monthly_price` y actualiza planes mensuales
+   - Lee `plan_annual_price` y actualiza planes anuales
 
 ## Instrucciones de Instalación
 
@@ -62,6 +73,22 @@ Después de ejecutar el script, verificar que:
    ```
 
 3. Ya no aparece el error fatal al acceder a "/subscription" o "Actualizar Plan"
+
+4. Los precios se sincronizaron correctamente:
+   ```sql
+   -- Verificar precios en subscriptions vs global_settings
+   SELECT 
+       s.name,
+       s.type,
+       s.price as precio_actual,
+       gs.setting_value as precio_configurado
+   FROM subscriptions s
+   LEFT JOIN global_settings gs ON (
+       (s.type = 'monthly' AND gs.setting_key = 'plan_monthly_price') OR
+       (s.type = 'annual' AND gs.setting_key = 'plan_annual_price')
+   )
+   WHERE s.type IN ('monthly', 'annual');
+   ```
 
 ## Configuración Post-Instalación
 
