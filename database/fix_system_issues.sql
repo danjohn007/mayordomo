@@ -2,40 +2,20 @@
 -- Actualización del Sistema - Fix de Issues Reportados
 -- ============================================================================
 -- Este script corrige los siguientes problemas:
--- 1. Agrega campo 'description' a la tabla subscriptions
--- 2. Sincroniza precios de suscripciones con global_settings
--- 3. Crea tabla role_permissions para asignación de áreas por rol
--- 4. Crea tabla de notificaciones unificada
+-- 1. Sincroniza precios de suscripciones con global_settings
+-- 2. Crea tabla role_permissions para asignación de áreas por rol
+-- 3. Crea tabla de notificaciones unificada (system_notifications)
+-- 4. Agrega campo notification_sent a room_reservations y table_reservations
+-- 5. Actualiza descripciones en features de los planes en subscriptions
+-- 6. Crea triggers para notificaciones automáticas
+-- 7. Inserta permisos por defecto para roles existentes
+-- 8. Vista unificada de reservaciones
 -- ============================================================================
 
--- Usar la base de datos correcta
 USE aqh_mayordomo;
 
 -- ============================================================================
--- 1. CORREGIR TABLA SUBSCRIPTIONS - Agregar campo description
--- ============================================================================
-
--- Verificar si la columna description ya existe, si no, agregarla
-SET @dbname = DATABASE();
-SET @tablename = 'subscriptions';
-SET @columnname = 'description';
-SET @preparedStatement = (SELECT IF(
-  (
-    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE
-      (table_name = @tablename)
-      AND (table_schema = @dbname)
-      AND (column_name = @columnname)
-  ) > 0,
-  "SELECT 1",
-  CONCAT("ALTER TABLE ", @tablename, " ADD COLUMN ", @columnname, " TEXT NULL AFTER features")
-));
-PREPARE alterIfNotExists FROM @preparedStatement;
-EXECUTE alterIfNotExists;
-DEALLOCATE PREPARE alterIfNotExists;
-
--- ============================================================================
--- 2. SINCRONIZAR PRECIOS DE SUSCRIPCIONES CON GLOBAL_SETTINGS
+-- 1. SINCRONIZAR PRECIOS DE SUSCRIPCIONES CON GLOBAL_SETTINGS
 -- ============================================================================
 
 -- Actualizar precios de planes según configuración global
@@ -55,15 +35,15 @@ SET s.price = (
 )
 WHERE s.type = 'annual';
 
--- Si no existen las configuraciones, crearlas con valores por defecto
-INSERT IGNORE INTO global_settings (category, setting_key, setting_value, description, created_at)
+-- Si no existen los valores, insertarlos (ajustado al esquema actual)
+INSERT IGNORE INTO global_settings (setting_key, setting_value, setting_type, description, category)
 VALUES
-('subscriptions', 'plan_monthly_price', '99.00', 'Precio del plan mensual', NOW()),
-('subscriptions', 'plan_annual_price', '990.00', 'Precio del plan anual', NOW()),
-('subscriptions', 'plan_trial_days', '30', 'Días de prueba gratuita', NOW());
+('plan_monthly_price', '499', 'number', 'Precio del plan mensual', 'subscription'),
+('plan_annual_price', '4990', 'number', 'Precio del plan anual', 'subscription'),
+('plan_trial_days', '7', 'number', 'Días de prueba gratuita', 'subscription');
 
 -- ============================================================================
--- 3. CREAR TABLA DE PERMISOS POR ROL (para asignación de áreas)
+-- 2. CREAR TABLA DE PERMISOS POR ROL (para asignación de áreas)
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS role_permissions (
@@ -71,23 +51,17 @@ CREATE TABLE IF NOT EXISTS role_permissions (
     hotel_id INT NOT NULL,
     user_id INT NOT NULL,
     role_name VARCHAR(50) NOT NULL,
-    -- Permisos por área
     can_manage_rooms TINYINT(1) DEFAULT 0,
     can_manage_tables TINYINT(1) DEFAULT 0,
     can_manage_menu TINYINT(1) DEFAULT 0,
-    -- Amenidades individuales (JSON array de IDs)
     amenity_ids TEXT NULL COMMENT 'JSON array de IDs de amenidades asignadas',
-    -- Servicios individuales (JSON array de tipos)
     service_types TEXT NULL COMMENT 'JSON array de tipos de servicios asignados',
-    -- Metadata
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     created_by INT NULL,
-    
     FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
-    
     INDEX idx_hotel (hotel_id),
     INDEX idx_user (user_id),
     INDEX idx_role (role_name),
@@ -95,7 +69,7 @@ CREATE TABLE IF NOT EXISTS role_permissions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- 4. CREAR TABLA DE NOTIFICACIONES DEL SISTEMA
+-- 3. CREAR TABLA DE NOTIFICACIONES DEL SISTEMA
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS system_notifications (
@@ -119,10 +93,8 @@ CREATE TABLE IF NOT EXISTS system_notifications (
     priority ENUM('low', 'normal', 'high', 'urgent') DEFAULT 'normal',
     read_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
     FOREIGN KEY (hotel_id) REFERENCES hotels(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    
     INDEX idx_hotel (hotel_id),
     INDEX idx_user (user_id),
     INDEX idx_is_read (is_read),
@@ -131,10 +103,11 @@ CREATE TABLE IF NOT EXISTS system_notifications (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================
--- 5. AGREGAR CAMPOS ADICIONALES A ROOM_RESERVATIONS (si no existen)
+-- 4. AGREGAR CAMPOS ADICIONALES notification_sent A ROOM_RESERVATIONS Y TABLE_RESERVATIONS
 -- ============================================================================
 
--- Campo para marcar si se envió notificación
+-- ROOM_RESERVATIONS
+SET @dbname = DATABASE();
 SET @columnname = 'notification_sent';
 SET @preparedStatement = (SELECT IF(
   (
@@ -151,10 +124,7 @@ PREPARE alterIfNotExists FROM @preparedStatement;
 EXECUTE alterIfNotExists;
 DEALLOCATE PREPARE alterIfNotExists;
 
--- ============================================================================
--- 6. AGREGAR CAMPOS ADICIONALES A TABLE_RESERVATIONS (si no existen)
--- ============================================================================
-
+-- TABLE_RESERVATIONS
 SET @columnname = 'notification_sent';
 SET @preparedStatement = (SELECT IF(
   (
@@ -172,29 +142,29 @@ EXECUTE alterIfNotExists;
 DEALLOCATE PREPARE alterIfNotExists;
 
 -- ============================================================================
--- 7. ACTUALIZAR DESCRIPCIONES DE LOS PLANES EXISTENTES
+-- 5. ACTUALIZAR DESCRIPCIONES EN FEATURES DE LOS PLANES EXISTENTES
 -- ============================================================================
 
--- Actualizar las descripciones de los planes
-UPDATE subscriptions 
-SET description = 'Acceso completo por 30 días. Ideal para probar todas las funcionalidades del sistema sin costo.'
-WHERE type = 'trial' AND description IS NULL;
+-- Mensual
+UPDATE subscriptions
+SET features = CONCAT(features, '\nDescripción: Plan mensual con acceso completo a todas las funcionalidades.')
+WHERE type = 'monthly' AND (features IS NOT NULL AND features NOT LIKE '%Descripción:%');
 
-UPDATE subscriptions 
-SET description = 'Plan mensual con acceso completo a todas las funcionalidades. Perfecto para hoteles pequeños y medianos.'
-WHERE type = 'monthly' AND description IS NULL;
+-- Anual
+UPDATE subscriptions
+SET features = CONCAT(features, '\nDescripción: Plan anual con descuento. Todas las funcionalidades incluidas más soporte prioritario.')
+WHERE type = 'annual' AND (features IS NOT NULL AND features NOT LIKE '%Descripción:%');
 
-UPDATE subscriptions 
-SET description = 'Plan anual con descuento. Todas las funcionalidades incluidas más soporte prioritario.'
-WHERE type = 'annual' AND description IS NULL;
+-- Trial
+UPDATE subscriptions
+SET features = CONCAT(features, '\nDescripción: Acceso completo por 7 días. Ideal para probar todas las funcionalidades del sistema sin costo.')
+WHERE type = 'trial' AND (features IS NOT NULL AND features NOT LIKE '%Descripción:%');
 
 -- ============================================================================
--- 8. CREAR TRIGGERS PARA NOTIFICACIONES AUTOMÁTICAS
+-- 6. CREAR TRIGGERS PARA NOTIFICACIONES AUTOMÁTICAS
 -- ============================================================================
 
--- Trigger para notificar cuando se crea una reservación de habitación
 DROP TRIGGER IF EXISTS trg_notify_new_room_reservation;
-
 DELIMITER $$
 CREATE TRIGGER trg_notify_new_room_reservation
 AFTER INSERT ON room_reservations
@@ -202,13 +172,9 @@ FOR EACH ROW
 BEGIN
     DECLARE v_hotel_id INT;
     DECLARE v_room_number VARCHAR(20);
-    
-    -- Obtener hotel_id y número de habitación
     SELECT hotel_id, room_number INTO v_hotel_id, v_room_number
     FROM rooms
     WHERE id = NEW.room_id;
-    
-    -- Insertar notificación para todos los admins del hotel
     INSERT INTO system_notifications (hotel_id, user_id, notification_type, related_type, related_id, title, message, requires_sound, priority)
     SELECT 
         v_hotel_id,
@@ -224,15 +190,11 @@ BEGIN
     WHERE u.hotel_id = v_hotel_id 
     AND u.role IN ('admin', 'manager')
     AND u.is_active = 1;
-    
-    -- Marcar que se envió notificación
     UPDATE room_reservations SET notification_sent = 1 WHERE id = NEW.id;
 END$$
 DELIMITER ;
 
--- Trigger para notificar cuando se crea una reservación de mesa
 DROP TRIGGER IF EXISTS trg_notify_new_table_reservation;
-
 DELIMITER $$
 CREATE TRIGGER trg_notify_new_table_reservation
 AFTER INSERT ON table_reservations
@@ -240,13 +202,9 @@ FOR EACH ROW
 BEGIN
     DECLARE v_hotel_id INT;
     DECLARE v_table_number VARCHAR(20);
-    
-    -- Obtener hotel_id y número de mesa
     SELECT hotel_id, table_number INTO v_hotel_id, v_table_number
     FROM restaurant_tables
     WHERE id = NEW.table_id;
-    
-    -- Insertar notificación para todos los admins y hostess del hotel
     INSERT INTO system_notifications (hotel_id, user_id, notification_type, related_type, related_id, title, message, requires_sound, priority)
     SELECT 
         v_hotel_id,
@@ -262,17 +220,14 @@ BEGIN
     WHERE u.hotel_id = v_hotel_id 
     AND u.role IN ('admin', 'manager', 'hostess')
     AND u.is_active = 1;
-    
-    -- Marcar que se envió notificación
     UPDATE table_reservations SET notification_sent = 1 WHERE id = NEW.id;
 END$$
 DELIMITER ;
 
 -- ============================================================================
--- 9. INSERTAR PERMISOS POR DEFECTO PARA ROLES EXISTENTES
+-- 7. INSERTAR PERMISOS POR DEFECTO PARA ROLES EXISTENTES
 -- ============================================================================
 
--- Insertar permisos por defecto para colaboradores existentes
 INSERT INTO role_permissions (hotel_id, user_id, role_name, can_manage_rooms, can_manage_tables, can_manage_menu, created_at)
 SELECT 
     u.hotel_id,
@@ -290,7 +245,7 @@ ON DUPLICATE KEY UPDATE
     updated_at = NOW();
 
 -- ============================================================================
--- 10. VISTA PARA CONSULTAR RESERVACIONES (todas unificadas)
+-- 8. VISTA UNIFICADA DE RESERVACIONES
 -- ============================================================================
 
 CREATE OR REPLACE VIEW v_all_reservations AS
@@ -340,15 +295,6 @@ LEFT JOIN users u ON tr.guest_id = u.id;
 -- VERIFICACIÓN FINAL
 -- ============================================================================
 
--- Verificar que se agregó el campo description
-SELECT 'Verificando campo description en subscriptions...' as verificacion;
-SELECT COUNT(*) as tiene_description
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE table_schema = DATABASE()
-AND table_name = 'subscriptions'
-AND column_name = 'description';
-
--- Verificar precios sincronizados
 SELECT 'Verificando precios de suscripciones...' as verificacion;
 SELECT s.name, s.type, s.price, gs.setting_value as precio_configurado
 FROM subscriptions s
@@ -358,14 +304,12 @@ LEFT JOIN global_settings gs ON (
 )
 WHERE s.type IN ('monthly', 'annual');
 
--- Verificar tablas creadas
 SELECT 'Verificando nuevas tablas...' as verificacion;
 SELECT table_name
 FROM INFORMATION_SCHEMA.TABLES
 WHERE table_schema = DATABASE()
 AND table_name IN ('role_permissions', 'system_notifications');
 
--- Verificar triggers creados
 SELECT 'Verificando triggers...' as verificacion;
 SELECT trigger_name
 FROM INFORMATION_SCHEMA.TRIGGERS
