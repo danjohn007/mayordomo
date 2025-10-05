@@ -15,6 +15,14 @@
     <!-- Custom JS -->
     <script src="<?= BASE_URL ?>/public/js/app.js"></script>
     
+    <?php if (hasRole(['admin', 'manager', 'hostess', 'collaborator'])): ?>
+    <!-- Notification System (for staff only) -->
+    <script>
+        const BASE_URL = '<?= BASE_URL ?>';
+    </script>
+    <script src="<?= BASE_URL ?>/assets/js/notifications.js"></script>
+    <?php endif; ?>
+    
     <?php if (isset($extraJs)): ?>
         <?= $extraJs ?>
     <?php endif; ?>
