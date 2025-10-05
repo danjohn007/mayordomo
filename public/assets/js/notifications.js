@@ -8,7 +8,7 @@
     
     // Configuración
     const POLL_INTERVAL = 15000; // 15 segundos
-    const SOUND_FILE = BASE_URL + '/assets/sounds/notification.mp3';
+    const SOUND_FILE = BASE_URL + '/assets/sounds/notification.wav'; // Changed to WAV format
     const SOUND_REPEAT_INTERVAL = 10000; // Repetir sonido cada 10 segundos
     
     // Estado
