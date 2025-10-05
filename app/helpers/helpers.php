@@ -284,7 +284,8 @@ function getSetting($key, $default = null) {
                     $value = is_numeric($value) ? (float)$value : $value;
                     break;
                 case 'json':
-                    $value = json_decode($value, true);
+                    // Fix: Ensure value is not null before decoding
+                    $value = json_decode($value ?? '[]', true);
                     break;
             }
             

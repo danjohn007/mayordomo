@@ -114,10 +114,33 @@ class AuthController extends BaseController {
             redirect('dashboard');
         }
         
-        // Get available subscriptions
-        $stmt = $this->db->prepare("SELECT * FROM subscriptions WHERE is_active = 1 ORDER BY price ASC");
-        $stmt->execute();
-        $subscriptions = $stmt->fetchAll();
+        // Get available subscriptions - Try new structure first, fallback to old
+        try {
+            $stmt = $this->db->prepare("
+                SELECT 
+                    id, 
+                    name, 
+                    price, 
+                    billing_cycle as type,
+                    CASE 
+                        WHEN price = 0 AND trial_days > 0 THEN trial_days
+                        WHEN billing_cycle = 'monthly' THEN 30
+                        WHEN billing_cycle = 'annual' THEN 365
+                        WHEN billing_cycle = 'lifetime' THEN 36500
+                        ELSE 30
+                    END as duration_days
+                FROM subscription_plans 
+                WHERE is_active = 1 
+                ORDER BY price ASC
+            ");
+            $stmt->execute();
+            $subscriptions = $stmt->fetchAll();
+        } catch (\PDOException $e) {
+            // Fallback to old subscriptions table structure
+            $stmt = $this->db->prepare("SELECT * FROM subscriptions WHERE is_active = 1 ORDER BY price ASC");
+            $stmt->execute();
+            $subscriptions = $stmt->fetchAll();
+        }
         
         // Get trial days from settings
         $trialDays = getSetting('trial_days', 30);
@@ -127,7 +150,8 @@ class AuthController extends BaseController {
         
         // Get bank accounts from settings (stored as JSON)
         $bankAccountsJson = getSetting('bank_accounts', '[]');
-        $bankAccounts = json_decode($bankAccountsJson, true);
+        // Fix: Ensure $bankAccountsJson is not null before decoding
+        $bankAccounts = json_decode($bankAccountsJson ?? '[]', true);
         if (!is_array($bankAccounts)) {
             $bankAccounts = [];
         }
