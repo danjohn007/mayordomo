@@ -24,7 +24,14 @@ class Dish {
             $params[] = $filters['category'];
         }
         
-        if (isset($filters['is_available'])) {
+        if (!empty($filters['search'])) {
+            $sql .= " AND (name LIKE ? OR description LIKE ?)";
+            $searchTerm = "%{$filters['search']}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        if (isset($filters['is_available']) && $filters['is_available'] !== '') {
             $sql .= " AND is_available = ?";
             $params[] = $filters['is_available'];
         }

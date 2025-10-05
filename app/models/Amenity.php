@@ -24,6 +24,18 @@ class Amenity {
             $params[] = $filters['category'];
         }
         
+        if (!empty($filters['search'])) {
+            $sql .= " AND (name LIKE ? OR description LIKE ?)";
+            $searchTerm = "%{$filters['search']}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        if (isset($filters['is_active']) && $filters['is_active'] !== '') {
+            $sql .= " AND is_available = ?";
+            $params[] = $filters['is_active'];
+        }
+        
         $sql .= " ORDER BY category, name";
         
         $stmt = $this->db->prepare($sql);

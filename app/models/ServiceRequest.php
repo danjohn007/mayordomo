@@ -42,6 +42,19 @@ class ServiceRequest {
             $params[] = $filters['guest_id'];
         }
         
+        if (!empty($filters['search'])) {
+            $sql .= " AND (sr.title LIKE ? OR sr.description LIKE ? OR sr.room_number LIKE ?)";
+            $searchTerm = "%{$filters['search']}%";
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+        
+        if (!empty($filters['priority'])) {
+            $sql .= " AND sr.priority = ?";
+            $params[] = $filters['priority'];
+        }
+        
         $sql .= " ORDER BY sr.requested_at DESC";
         
         $stmt = $this->db->prepare($sql);

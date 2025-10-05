@@ -10,14 +10,20 @@ class UsersController extends BaseController {
     
     public function index() {
         $user = currentUser();
-        $filters = ['hotel_id' => $user['hotel_id']];
+        $filters = [
+            'hotel_id' => $user['hotel_id'],
+            'search' => $_GET['search'] ?? '',
+            'role' => $_GET['role'] ?? '',
+            'is_active' => $_GET['is_active'] ?? ''
+        ];
         
         $model = $this->model('User');
         $users = $model->getAll($filters);
         
         $this->view('users/index', [
             'title' => 'Gestión de Usuarios',
-            'users' => $users
+            'users' => $users,
+            'filters' => $filters
         ]);
     }
     
