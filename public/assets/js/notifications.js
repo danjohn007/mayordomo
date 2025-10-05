@@ -9,11 +9,14 @@
     // Configuración
     const POLL_INTERVAL = 15000; // 15 segundos
     const SOUND_FILE = BASE_URL + '/assets/sounds/notification.mp3';
+    const SOUND_REPEAT_INTERVAL = 10000; // Repetir sonido cada 10 segundos
     
     // Estado
     let lastNotificationId = 0;
     let notificationSound = null;
     let isFirstCheck = true;
+    let soundIntervalId = null;
+    let activeNotifications = new Set(); // Track active notifications requiring sound
     
     /**
      * Inicializar sistema de notificaciones
@@ -58,6 +61,7 @@
      */
     function processNotifications(notifications) {
         let hasNewNotifications = false;
+        let hasPendingNotifications = false;
         
         notifications.forEach(notification => {
             // Solo procesar notificaciones nuevas
@@ -70,9 +74,28 @@
                     showNotification(notification);
                 }
             }
+            
+            // Check if notification requires sound (pending status)
+            if (notification.requires_sound || 
+                (notification.related_type === 'service_request' && notification.status !== 'completed') ||
+                (notification.related_type === 'room_reservation' && ['pending', 'confirmed'].includes(notification.status)) ||
+                (notification.related_type === 'table_reservation' && ['pending', 'confirmed'].includes(notification.status)) ||
+                (notification.related_type === 'amenity_reservation' && ['pending', 'confirmed'].includes(notification.status))) {
+                activeNotifications.add(notification.id);
+                hasPendingNotifications = true;
+            } else {
+                activeNotifications.delete(notification.id);
+            }
         });
         
-        // Reproducir sonido si hay notificaciones nuevas y no es la primera carga
+        // Start or stop persistent sound based on active notifications
+        if (hasPendingNotifications && activeNotifications.size > 0) {
+            startPersistentSound();
+        } else {
+            stopPersistentSound();
+        }
+        
+        // Play immediate sound for new notifications
         if (hasNewNotifications && !isFirstCheck) {
             playNotificationSound();
         }
@@ -156,6 +179,38 @@
     }
     
     /**
+     * Start persistent sound for pending notifications
+     */
+    function startPersistentSound() {
+        if (!soundIntervalId) {
+            // Play sound immediately
+            playNotificationSound();
+            
+            // Set up interval to repeat sound
+            soundIntervalId = setInterval(() => {
+                if (activeNotifications.size > 0) {
+                    playNotificationSound();
+                } else {
+                    stopPersistentSound();
+                }
+            }, SOUND_REPEAT_INTERVAL);
+            
+            console.log('Sonido persistente iniciado para notificaciones pendientes');
+        }
+    }
+    
+    /**
+     * Stop persistent sound
+     */
+    function stopPersistentSound() {
+        if (soundIntervalId) {
+            clearInterval(soundIntervalId);
+            soundIntervalId = null;
+            console.log('Sonido persistente detenido');
+        }
+    }
+    
+    /**
      * Actualizar badge de contador de notificaciones
      */
     function updateNotificationBadge(count) {
@@ -188,6 +243,14 @@
      * Marcar notificación como leída
      */
     window.markNotificationAsRead = function(notificationId) {
+        // Remove from active notifications to stop sound
+        activeNotifications.delete(notificationId);
+        
+        // Stop sound if no more active notifications
+        if (activeNotifications.size === 0) {
+            stopPersistentSound();
+        }
+        
         fetch(BASE_URL + '/notifications/markAsRead/' + notificationId, {
             method: 'POST',
             headers: {
@@ -209,6 +272,10 @@
      * Marcar todas las notificaciones como leídas
      */
     window.markAllNotificationsAsRead = function() {
+        // Clear all active notifications to stop sound
+        activeNotifications.clear();
+        stopPersistentSound();
+        
         fetch(BASE_URL + '/notifications/markAllAsRead', {
             method: 'POST',
             headers: {
