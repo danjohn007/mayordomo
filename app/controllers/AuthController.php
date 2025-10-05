@@ -22,9 +22,31 @@ class AuthController extends BaseController {
         // Get trial days from settings
         $trialDays = getSetting('trial_days', 30);
         
+        // Check if there's a referral code in URL
+        $referralCode = $_GET['ref'] ?? null;
+        $referrerName = null;
+        
+        if ($referralCode) {
+            // Get referrer user info from loyalty program
+            $stmt = $this->db->prepare("
+                SELECT u.first_name, u.last_name 
+                FROM loyalty_program lp
+                JOIN users u ON lp.user_id = u.id
+                WHERE lp.referral_code = ? AND lp.is_active = 1
+            ");
+            $stmt->execute([$referralCode]);
+            $referrer = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($referrer) {
+                $referrerName = $referrer['first_name'] . ' ' . $referrer['last_name'];
+            }
+        }
+        
         $this->view('auth/login', [
             'title' => 'Iniciar Sesión',
-            'trialDays' => $trialDays
+            'trialDays' => $trialDays,
+            'referralCode' => $referralCode,
+            'referrerName' => $referrerName
         ]);
     }
     
@@ -103,16 +125,41 @@ class AuthController extends BaseController {
         // Get PayPal settings
         $paypalEnabled = getSetting('paypal_enabled', '0') === '1';
         
-        // Get bank accounts
-        $stmt = $this->db->query("SELECT * FROM bank_accounts WHERE is_active = 1");
-        $bankAccounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Get bank accounts from settings (stored as JSON)
+        $bankAccountsJson = getSetting('bank_accounts', '[]');
+        $bankAccounts = json_decode($bankAccountsJson, true);
+        if (!is_array($bankAccounts)) {
+            $bankAccounts = [];
+        }
+        
+        // Check if there's a referral code in URL
+        $referralCode = $_GET['ref'] ?? null;
+        $referrerName = null;
+        
+        if ($referralCode) {
+            // Get referrer user info from loyalty program
+            $stmt = $this->db->prepare("
+                SELECT u.first_name, u.last_name 
+                FROM loyalty_program lp
+                JOIN users u ON lp.user_id = u.id
+                WHERE lp.referral_code = ? AND lp.is_active = 1
+            ");
+            $stmt->execute([$referralCode]);
+            $referrer = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($referrer) {
+                $referrerName = $referrer['first_name'] . ' ' . $referrer['last_name'];
+            }
+        }
         
         $this->view('auth/register', [
             'title' => 'Registrarse',
             'subscriptions' => $subscriptions,
             'trialDays' => $trialDays,
             'paypalEnabled' => $paypalEnabled,
-            'bankAccounts' => $bankAccounts
+            'bankAccounts' => $bankAccounts,
+            'referralCode' => $referralCode,
+            'referrerName' => $referrerName
         ]);
     }
     
