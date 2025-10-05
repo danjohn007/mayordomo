@@ -125,6 +125,9 @@
                 <a class="nav-link" href="<?= BASE_URL ?>/reservations">
                     <i class="bi bi-calendar-check"></i> Reservaciones
                 </a>
+                <a class="nav-link" href="<?= BASE_URL ?>/calendar">
+                    <i class="bi bi-calendar3"></i> Calendario
+                </a>
                 <?php endif; ?>
                 
                 <?php if (hasRole(['hostess'])): ?>
