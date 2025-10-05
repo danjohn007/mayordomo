@@ -26,7 +26,7 @@
             <button class="btn btn-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu">
                 <i class="bi bi-list"></i>
             </button>
-            <a class="navbar-brand mx-auto" href="<?= BASE_URL ?>/dashboard">
+            <a class="navbar-brand mx-auto" href="<?= BASE_URL ?><?= hasRole(['superadmin']) ? '/superadmin' : '/dashboard' ?>">
                 <i class="bi bi-building"></i> MajorBot
             </a>
             <div class="dropdown">
@@ -59,9 +59,15 @@
         </div>
         <div class="offcanvas-body p-0">
             <nav class="nav flex-column">
+                <?php if (hasRole(['superadmin'])): ?>
+                <a class="nav-link" href="<?= BASE_URL ?>/superadmin">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+                <?php else: ?>
                 <a class="nav-link" href="<?= BASE_URL ?>/dashboard">
                     <i class="bi bi-speedometer2"></i> Dashboard
                 </a>
+                <?php endif; ?>
                 
                 <?php if (hasRole(['superadmin'])): ?>
                 <!-- Superadmin Menu -->

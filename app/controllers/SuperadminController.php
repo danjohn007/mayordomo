@@ -90,6 +90,34 @@ class SuperadminController extends BaseController {
         ");
         $stats['loyalty_members'] = $stmt->fetch()['total'];
         
+        // Recent hotels (last 5)
+        $stmt = $this->db->query("
+            SELECT h.name, h.email, h.created_at,
+                   CONCAT(u.first_name, ' ', u.last_name) as owner_name
+            FROM hotels h
+            LEFT JOIN users u ON h.owner_id = u.id
+            ORDER BY h.created_at DESC
+            LIMIT 5
+        ");
+        $stats['recent_hotels'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Subscription distribution
+        $stmt = $this->db->query("
+            SELECT sp.name, COUNT(*) as count
+            FROM user_subscriptions us
+            JOIN subscription_plans sp ON us.subscription_id = sp.id
+            WHERE us.status = 'active'
+            GROUP BY sp.id, sp.name
+        ");
+        $distribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Calculate percentages
+        $totalSubs = array_sum(array_column($distribution, 'count'));
+        foreach ($distribution as &$plan) {
+            $plan['percentage'] = $totalSubs > 0 ? round(($plan['count'] / $totalSubs) * 100, 1) : 0;
+        }
+        $stats['subscription_distribution'] = $distribution;
+        
         return $stats;
     }
     

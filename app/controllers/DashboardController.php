@@ -9,12 +9,19 @@ class DashboardController extends BaseController {
     
     public function index() {
         $user = currentUser();
+        
+        // Redirect superadmin to superadmin dashboard
+        if ($user['role'] === 'superadmin') {
+            redirect('superadmin');
+        }
+        
         $stats = [];
         
         // Get stats based on role
         switch ($user['role']) {
-            case 'superadmin':
-                $stats = $this->getSuperadminStats();
+            case 'admin':
+            case 'manager':
+                $stats = $this->getAdminStats($user['hotel_id']);
                 break;
             case 'admin':
             case 'manager':
