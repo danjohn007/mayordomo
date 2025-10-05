@@ -25,18 +25,35 @@ class NotificationsController extends BaseController {
             // Obtener notificaciones no leídas del usuario
             $stmt = $this->db->prepare("
                 SELECT 
-                    id, 
-                    notification_type,
-                    title,
-                    message,
-                    priority,
-                    requires_sound,
-                    created_at
-                FROM system_notifications
-                WHERE user_id = ? 
-                AND is_read = 0
-                AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
-                ORDER BY created_at DESC
+                    sn.id, 
+                    sn.notification_type,
+                    sn.title,
+                    sn.message,
+                    sn.priority,
+                    sn.requires_sound,
+                    sn.related_type,
+                    sn.related_id,
+                    sn.created_at,
+                    CASE 
+                        WHEN sn.related_type = 'room_reservation' THEN (
+                            SELECT status FROM room_reservations WHERE id = sn.related_id
+                        )
+                        WHEN sn.related_type = 'table_reservation' THEN (
+                            SELECT status FROM table_reservations WHERE id = sn.related_id
+                        )
+                        WHEN sn.related_type = 'amenity_reservation' THEN (
+                            SELECT status FROM amenity_reservations WHERE id = sn.related_id
+                        )
+                        WHEN sn.related_type = 'service_request' THEN (
+                            SELECT status FROM service_requests WHERE id = sn.related_id
+                        )
+                        ELSE NULL
+                    END as status
+                FROM system_notifications sn
+                WHERE sn.user_id = ? 
+                AND sn.is_read = 0
+                AND sn.created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)
+                ORDER BY sn.created_at DESC
                 LIMIT 10
             ");
             $stmt->execute([$currentUser['id']]);
