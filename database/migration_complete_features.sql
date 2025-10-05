@@ -110,9 +110,6 @@ DELIMITER ;
 -- 4. EVENTOS AUTOMÁTICOS: LIBERACIÓN DE RECURSOS
 -- ========================================
 
--- Habilitar el programador de eventos
-SET GLOBAL event_scheduler = ON;
-
 -- Evento para liberar mesas y amenidades después de 2 horas
 DELIMITER //
 
@@ -223,7 +220,6 @@ SHOW PROCEDURE STATUS WHERE Db = DATABASE() AND Name = 'check_resource_availabil
 --      * CREATE TABLE
 --      * CREATE PROCEDURE
 --      * CREATE EVENT
---      * SET GLOBAL (para event_scheduler)
 --
 -- ========================================
 -- FIN DE MIGRACIÓN
