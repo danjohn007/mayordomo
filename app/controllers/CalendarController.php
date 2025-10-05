@@ -47,21 +47,22 @@ class CalendarController extends BaseController {
             $stmt = $this->db->prepare("
                 SELECT 
                     rr.id,
-                    rr.check_in_date,
-                    rr.check_out_date,
-                    rr.guest_name,
+                    rr.check_in,
+                    rr.check_out,
+                    COALESCE(rr.guest_name, CONCAT(u.first_name, ' ', u.last_name)) as guest_name,
                     rr.status,
                     r.room_number,
                     'room' as event_type
                 FROM room_reservations rr
                 JOIN rooms r ON rr.room_id = r.id
-                WHERE rr.hotel_id = ?
+                LEFT JOIN users u ON rr.guest_id = u.id
+                WHERE r.hotel_id = ?
                 AND (
-                    (rr.check_in_date BETWEEN ? AND ?)
-                    OR (rr.check_out_date BETWEEN ? AND ?)
-                    OR (rr.check_in_date <= ? AND rr.check_out_date >= ?)
+                    (rr.check_in BETWEEN ? AND ?)
+                    OR (rr.check_out BETWEEN ? AND ?)
+                    OR (rr.check_in <= ? AND rr.check_out >= ?)
                 )
-                ORDER BY rr.check_in_date
+                ORDER BY rr.check_in
             ");
             $stmt->execute([$hotelId, $start, $end, $start, $end, $start, $end]);
             $roomReservations = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -71,8 +72,8 @@ class CalendarController extends BaseController {
                 $events[] = [
                     'id' => 'room_' . $reservation['id'],
                     'title' => '🚪 Hab. ' . $reservation['room_number'] . ' - ' . $reservation['guest_name'],
-                    'start' => $reservation['check_in_date'],
-                    'end' => $reservation['check_out_date'],
+                    'start' => $reservation['check_in'],
+                    'end' => $reservation['check_out'],
                     'backgroundColor' => $color,
                     'borderColor' => $color,
                     'extendedProps' => [
@@ -90,14 +91,15 @@ class CalendarController extends BaseController {
                     tr.id,
                     tr.reservation_date,
                     tr.reservation_time,
-                    tr.guest_name,
+                    COALESCE(tr.guest_name, CONCAT(u.first_name, ' ', u.last_name)) as guest_name,
                     tr.party_size,
                     tr.status,
                     t.table_number,
                     'table' as event_type
                 FROM table_reservations tr
                 JOIN restaurant_tables t ON tr.table_id = t.id
-                WHERE tr.hotel_id = ?
+                LEFT JOIN users u ON tr.guest_id = u.id
+                WHERE t.hotel_id = ?
                 AND tr.reservation_date BETWEEN ? AND ?
                 ORDER BY tr.reservation_date, tr.reservation_time
             ");
@@ -130,12 +132,13 @@ class CalendarController extends BaseController {
                     ar.id,
                     ar.reservation_date,
                     ar.reservation_time,
-                    ar.guest_name,
+                    COALESCE(ar.guest_name, CONCAT(u.first_name, ' ', u.last_name)) as guest_name,
                     ar.status,
                     a.name as amenity_name,
                     'amenity' as event_type
                 FROM amenity_reservations ar
                 JOIN amenities a ON ar.amenity_id = a.id
+                LEFT JOIN users u ON ar.user_id = u.id
                 WHERE ar.hotel_id = ?
                 AND ar.reservation_date BETWEEN ? AND ?
                 ORDER BY ar.reservation_date, ar.reservation_time
