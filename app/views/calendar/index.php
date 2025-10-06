@@ -17,21 +17,29 @@
     </div>
 
     <!-- Legend -->
-    <div class="card mb-3">
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="bi bi-info-circle"></i> Leyenda</h6>
+        </div>
         <div class="card-body">
             <div class="row">
-                <div class="col-md-12">
-                    <h6 class="mb-2">Leyenda:</h6>
-                    <div class="d-flex flex-wrap gap-3">
-                        <span><i class="bi bi-circle-fill" style="color: #ffc107;"></i> Pendiente</span>
-                        <span><i class="bi bi-circle-fill" style="color: #28a745;"></i> Confirmado</span>
-                        <span><i class="bi bi-circle-fill" style="color: #17a2b8;"></i> En Curso</span>
-                        <span><i class="bi bi-circle-fill" style="color: #6c757d;"></i> Completado</span>
-                        <span><i class="bi bi-circle-fill" style="color: #dc3545;"></i> Cancelado</span>
-                        <span class="ms-4">🚪 Habitaciones</span>
-                        <span>🍽️ Mesas</span>
-                        <span>⭐ Amenidades</span>
-                        <span>🔔 Servicios</span>
+                <div class="col-md-6">
+                    <strong class="text-muted small">ESTADOS:</strong>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <span class="badge bg-warning text-dark"><i class="bi bi-circle-fill"></i> Pendiente</span>
+                        <span class="badge" style="background-color: #28a745;"><i class="bi bi-circle-fill"></i> Confirmado</span>
+                        <span class="badge" style="background-color: #17a2b8;"><i class="bi bi-circle-fill"></i> En Curso</span>
+                        <span class="badge bg-secondary"><i class="bi bi-circle-fill"></i> Completado</span>
+                        <span class="badge bg-danger"><i class="bi bi-circle-fill"></i> Cancelado</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <strong class="text-muted small">TIPOS DE RESERVACIÓN:</strong>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <span class="badge bg-info"><i class="bi bi-door-closed"></i> Habitaciones</span>
+                        <span class="badge bg-success"><i class="bi bi-table"></i> Mesas</span>
+                        <span class="badge bg-primary"><i class="bi bi-spa"></i> Amenidades</span>
+                        <span class="badge bg-warning text-dark"><i class="bi bi-bell"></i> Servicios</span>
                     </div>
                 </div>
             </div>
@@ -68,6 +76,53 @@
 <!-- FullCalendar CSS -->
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
 
+<style>
+/* Ensure calendar events are clearly visible */
+.fc-event {
+    cursor: pointer;
+    font-weight: 500;
+    border-width: 2px !important;
+}
+
+.fc-event:hover {
+    opacity: 0.85;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.fc-daygrid-event {
+    white-space: normal !important;
+    align-items: flex-start !important;
+    padding: 2px 4px !important;
+}
+
+.fc-event-title {
+    font-weight: 600;
+}
+
+/* Make calendar more readable */
+.fc-daygrid-day-number {
+    font-size: 1.1em;
+    font-weight: 600;
+    padding: 8px;
+}
+
+.fc-col-header-cell-cushion {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.9em;
+}
+
+/* Modal improvements */
+#eventModalBody dl dt {
+    font-weight: 600;
+    color: #495057;
+}
+
+#eventModalBody dl dd {
+    color: #212529;
+}
+</style>
+
 <!-- FullCalendar JS -->
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/locales/es.global.min.js"></script>
@@ -98,13 +153,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(data => {
                     if (data.error) {
                         console.error('Error loading events:', data.error);
+                        alert('Error al cargar eventos: ' + data.error);
                         failureCallback(data.error);
                     } else {
+                        console.log('Loaded ' + data.length + ' events from server');
+                        if (data.length === 0) {
+                            console.log('No hay reservaciones en este período');
+                        }
                         successCallback(data);
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
+                    alert('Error de conexión al cargar eventos');
                     failureCallback(error);
                 });
         },
@@ -143,84 +204,86 @@ document.addEventListener('DOMContentLoaded', function() {
         const modalBody = document.getElementById('eventModalBody');
         const viewLink = document.getElementById('eventViewLink');
         
-        let detailsHtml = '<dl class="row">';
+        let detailsHtml = '<dl class="row mb-0">';
         
-        // Common details
-        detailsHtml += `<dt class="col-sm-4">Tipo:</dt>`;
+        // Type - REQUIRED
+        detailsHtml += `<dt class="col-sm-4"><strong>Tipo:</strong></dt>`;
         detailsHtml += `<dd class="col-sm-8">`;
         switch(props.type) {
             case 'room':
-                detailsHtml += '<i class="bi bi-door-closed"></i> Habitación';
+                detailsHtml += '<span class="badge bg-info"><i class="bi bi-door-closed"></i> Habitación</span>';
                 break;
             case 'table':
-                detailsHtml += '<i class="bi bi-table"></i> Mesa';
+                detailsHtml += '<span class="badge bg-success"><i class="bi bi-table"></i> Mesa</span>';
                 break;
             case 'amenity':
-                detailsHtml += '<i class="bi bi-spa"></i> Amenidad';
+                detailsHtml += '<span class="badge bg-primary"><i class="bi bi-spa"></i> Amenidad</span>';
                 break;
             case 'service':
-                detailsHtml += '<i class="bi bi-bell"></i> Servicio';
+                detailsHtml += '<span class="badge bg-warning"><i class="bi bi-bell"></i> Servicio</span>';
                 break;
         }
         detailsHtml += `</dd>`;
         
-        // Guest/User
-        if (props.guest) {
-            detailsHtml += `<dt class="col-sm-4">Huésped:</dt>`;
-            detailsHtml += `<dd class="col-sm-8">${props.guest}</dd>`;
-        }
-        
-        // Resource specific details
-        if (props.room) {
-            detailsHtml += `<dt class="col-sm-4">Habitación:</dt>`;
-            detailsHtml += `<dd class="col-sm-8">${props.room}</dd>`;
-        }
-        
-        if (props.table) {
-            detailsHtml += `<dt class="col-sm-4">Mesa:</dt>`;
-            detailsHtml += `<dd class="col-sm-8">${props.table}</dd>`;
-        }
-        
-        if (props.amenity) {
-            detailsHtml += `<dt class="col-sm-4">Amenidad:</dt>`;
-            detailsHtml += `<dd class="col-sm-8">${props.amenity}</dd>`;
-        }
-        
-        if (props.time) {
-            detailsHtml += `<dt class="col-sm-4">Hora:</dt>`;
-            detailsHtml += `<dd class="col-sm-8">${props.time}</dd>`;
-        }
-        
-        if (props.description) {
-            detailsHtml += `<dt class="col-sm-4">Descripción:</dt>`;
-            detailsHtml += `<dd class="col-sm-8">${props.description}</dd>`;
-        }
-        
-        // Status
-        detailsHtml += `<dt class="col-sm-4">Estado:</dt>`;
+        // Status - REQUIRED
+        detailsHtml += `<dt class="col-sm-4"><strong>Estado:</strong></dt>`;
         detailsHtml += `<dd class="col-sm-8">`;
         detailsHtml += getStatusBadge(props.status);
         detailsHtml += `</dd>`;
         
+        // Guest/User - REQUIRED
+        if (props.guest) {
+            detailsHtml += `<dt class="col-sm-4"><strong>Huésped:</strong></dt>`;
+            detailsHtml += `<dd class="col-sm-8"><i class="bi bi-person"></i> ${props.guest}</dd>`;
+        }
+        
+        // Resource specific details - REQUIRED
+        if (props.room) {
+            detailsHtml += `<dt class="col-sm-4"><strong>Recurso:</strong></dt>`;
+            detailsHtml += `<dd class="col-sm-8"><i class="bi bi-door-closed"></i> Habitación ${props.room}</dd>`;
+        }
+        
+        if (props.table) {
+            detailsHtml += `<dt class="col-sm-4"><strong>Recurso:</strong></dt>`;
+            detailsHtml += `<dd class="col-sm-8"><i class="bi bi-table"></i> Mesa ${props.table}</dd>`;
+        }
+        
+        if (props.amenity) {
+            detailsHtml += `<dt class="col-sm-4"><strong>Recurso:</strong></dt>`;
+            detailsHtml += `<dd class="col-sm-8"><i class="bi bi-spa"></i> ${props.amenity}</dd>`;
+        }
+        
+        // Dates - REQUIRED
+        detailsHtml += `<dt class="col-sm-4"><strong>Fecha:</strong></dt>`;
+        detailsHtml += `<dd class="col-sm-8"><i class="bi bi-calendar"></i> ${formatDate(event.start)}`;
+        if (event.end && props.type === 'room') {
+            detailsHtml += ` al ${formatDate(event.end)}`;
+        }
+        detailsHtml += `</dd>`;
+        
+        // Time (for tables and amenities)
+        if (props.time) {
+            detailsHtml += `<dt class="col-sm-4"><strong>Hora:</strong></dt>`;
+            detailsHtml += `<dd class="col-sm-8"><i class="bi bi-clock"></i> ${props.time}</dd>`;
+        }
+        
+        // Description (for services)
+        if (props.description) {
+            detailsHtml += `<dt class="col-sm-4"><strong>Descripción:</strong></dt>`;
+            detailsHtml += `<dd class="col-sm-8">${props.description}</dd>`;
+        }
+        
         // Priority (for services)
         if (props.priority) {
-            detailsHtml += `<dt class="col-sm-4">Prioridad:</dt>`;
+            detailsHtml += `<dt class="col-sm-4"><strong>Prioridad:</strong></dt>`;
             detailsHtml += `<dd class="col-sm-8">`;
             detailsHtml += getPriorityBadge(props.priority);
             detailsHtml += `</dd>`;
         }
         
-        // Dates
-        detailsHtml += `<dt class="col-sm-4">Fecha:</dt>`;
-        detailsHtml += `<dd class="col-sm-8">${formatDate(event.start)}`;
-        if (event.end && props.type === 'room') {
-            detailsHtml += ` - ${formatDate(event.end)}`;
-        }
-        detailsHtml += `</dd>`;
-        
         detailsHtml += '</dl>';
         
-        modalTitle.textContent = event.title;
+        modalTitle.innerHTML = '<i class="bi bi-info-circle"></i> ' + event.title;
         modalBody.innerHTML = detailsHtml;
         
         // Set view link based on type
