@@ -176,19 +176,20 @@ class CalendarController extends BaseController {
             $stmt = $this->db->prepare("
                 SELECT 
                     sr.id,
-                    sr.created_at,
-                    sr.request_description,
+                    sr.requested_at,
+                    sr.title,
+                    sr.description,
                     sr.status,
                     sr.priority,
                     u.first_name,
                     u.last_name,
                     'service' as event_type
                 FROM service_requests sr
-                LEFT JOIN users u ON sr.user_id = u.id
+                LEFT JOIN users u ON sr.guest_id = u.id
                 WHERE sr.hotel_id = ?
-                AND DATE(sr.created_at) BETWEEN ? AND ?
+                AND DATE(sr.requested_at) BETWEEN ? AND ?
                 AND sr.status NOT IN ('completed', 'cancelled')
-                ORDER BY sr.created_at
+                ORDER BY sr.requested_at
             ");
             $stmt->execute([$hotelId, $start, $end]);
             $serviceRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -199,8 +200,8 @@ class CalendarController extends BaseController {
                 $guest = ($request['first_name'] ? $request['first_name'] . ' ' . $request['last_name'] : 'Huésped');
                 $events[] = [
                     'id' => 'service_' . $request['id'],
-                    'title' => '🔔 Servicio: ' . substr($request['request_description'], 0, 30) . '...',
-                    'start' => $request['created_at'],
+                    'title' => '🔔 Servicio: ' . substr($request['title'], 0, 30) . '...',
+                    'start' => $request['requested_at'],
                     'allDay' => false,
                     'backgroundColor' => $color,
                     'borderColor' => $color,
@@ -209,7 +210,7 @@ class CalendarController extends BaseController {
                         'status' => $request['status'],
                         'priority' => $request['priority'] ?? 'normal',
                         'guest' => $guest,
-                        'description' => $request['request_description']
+                        'description' => $request['description']
                     ]
                 ];
             }

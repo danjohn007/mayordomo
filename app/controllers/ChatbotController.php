@@ -286,8 +286,8 @@ class ChatbotController extends BaseController {
                           AND status IN ('confirmed', 'seated', 'pending')
                           AND reservation_date = ?
                           AND (
-                              (reservation_time <= ? AND ADDTIME(reservation_time, '02:00:00') > ?)
-                              OR (reservation_time >= ? AND reservation_time < ADDTIME(?, '02:00:00'))
+                              (CAST(reservation_time AS CHAR) <= ? AND CAST(ADDTIME(reservation_time, '02:00:00') AS CHAR) > ?)
+                              OR (CAST(reservation_time AS CHAR) >= ? AND CAST(reservation_time AS CHAR) < CAST(ADDTIME(?, '02:00:00') AS CHAR))
                           )
                     ");
                     $stmt->execute([$data['resource_id'], $data['check_in_date'], 
@@ -308,8 +308,8 @@ class ChatbotController extends BaseController {
                           AND status IN ('confirmed', 'in_use', 'pending')
                           AND reservation_date = ?
                           AND (
-                              (reservation_time <= ? AND ADDTIME(reservation_time, '02:00:00') > ?)
-                              OR (reservation_time >= ? AND reservation_time < ADDTIME(?, '02:00:00'))
+                              (CAST(reservation_time AS CHAR) <= ? AND CAST(ADDTIME(reservation_time, '02:00:00') AS CHAR) > ?)
+                              OR (CAST(reservation_time AS CHAR) >= ? AND CAST(reservation_time AS CHAR) < CAST(ADDTIME(?, '02:00:00') AS CHAR))
                           )
                     ");
                     $stmt->execute([$data['resource_id'], $data['check_in_date'],
