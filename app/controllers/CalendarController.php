@@ -37,10 +37,13 @@ class CalendarController extends BaseController {
         $hotelId = $user['hotel_id'];
         
         // Get date range from request
-        $start = $_GET['start'] ?? null;
-        $end = $_GET['end'] ?? null;
+        $start = $_GET['start'] ?? date('Y-m-01'); // Default to first day of current month
+        $end = $_GET['end'] ?? date('Y-m-t'); // Default to last day of current month
         
         $events = [];
+        
+        // Log for debugging
+        error_log("Calendar getEvents: start=$start, end=$end, hotelId=$hotelId");
         
         try {
             // Get room reservations
@@ -66,6 +69,7 @@ class CalendarController extends BaseController {
             ");
             $stmt->execute([$hotelId, $start, $end, $start, $end, $start, $end]);
             $roomReservations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            error_log("Calendar: Found " . count($roomReservations) . " room reservations");
             
             foreach ($roomReservations as $reservation) {
                 $color = $this->getColorForStatus($reservation['status']);
@@ -105,6 +109,7 @@ class CalendarController extends BaseController {
             ");
             $stmt->execute([$hotelId, $start, $end]);
             $tableReservations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            error_log("Calendar: Found " . count($tableReservations) . " table reservations");
             
             foreach ($tableReservations as $reservation) {
                 $color = $this->getColorForStatus($reservation['status']);
@@ -145,6 +150,7 @@ class CalendarController extends BaseController {
             ");
             $stmt->execute([$hotelId, $start, $end]);
             $amenityReservations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            error_log("Calendar: Found " . count($amenityReservations) . " amenity reservations");
             
             foreach ($amenityReservations as $reservation) {
                 $color = $this->getColorForStatus($reservation['status']);
@@ -186,6 +192,7 @@ class CalendarController extends BaseController {
             ");
             $stmt->execute([$hotelId, $start, $end]);
             $serviceRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            error_log("Calendar: Found " . count($serviceRequests) . " service requests");
             
             foreach ($serviceRequests as $request) {
                 $color = $this->getColorForPriority($request['priority'] ?? 'normal');
@@ -207,9 +214,11 @@ class CalendarController extends BaseController {
                 ];
             }
             
+            error_log("Calendar: Total events to return: " . count($events));
             echo json_encode($events);
         } catch (Exception $e) {
             error_log('Calendar error: ' . $e->getMessage());
+            error_log('Calendar error trace: ' . $e->getTraceAsString());
             echo json_encode(['error' => $e->getMessage()]);
         }
         exit;

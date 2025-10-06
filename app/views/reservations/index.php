@@ -68,7 +68,6 @@
                         <th>Huésped</th>
                         <th>Fecha</th>
                         <th>Estado</th>
-                        <th>Estado de Atención</th>
                         <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
@@ -122,13 +121,6 @@
                                 $label = $statusLabels[$reservation['status']] ?? $reservation['status'];
                                 ?>
                                 <span class="badge bg-<?= $color ?>"><?= $label ?></span>
-                            </td>
-                            <td>
-                                <?php if ($reservation['notification_sent']): ?>
-                                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Atendida</span>
-                                <?php else: ?>
-                                    <span class="badge bg-warning"><i class="bi bi-clock"></i> Pendiente</span>
-                                <?php endif; ?>
                             </td>
                             <td class="action-buttons text-center">
                                 <?php if (hasRole(['admin', 'manager', 'hostess'])): ?>
