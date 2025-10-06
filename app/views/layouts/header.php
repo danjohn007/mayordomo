@@ -152,6 +152,9 @@
                 <a class="nav-link" href="<?= BASE_URL ?>/roles">
                     <i class="bi bi-shield-check"></i> Roles y Permisos
                 </a>
+                <a class="nav-link" href="<?= BASE_URL ?>/settings">
+                    <i class="bi bi-gear"></i> Configuraciones
+                </a>
                 <?php endif; ?>
             </nav>
             
