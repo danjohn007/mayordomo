@@ -258,7 +258,9 @@
                 
                 let content = '';
                 if (resource.image) {
-                    content += `<img src="${baseUrl}/${resource.image}" alt="${resource.name || resource.room_number || resource.table_number}">`;
+                    // Image paths are stored as 'uploads/...' so we need to add 'public/' prefix
+                    const imagePath = resource.image.startsWith('uploads/') ? `public/${resource.image}` : resource.image;
+                    content += `<img src="${baseUrl}/${imagePath}" alt="${resource.name || resource.room_number || resource.table_number}">`;
                 }
                 
                 if (selectedResourceType === 'room') {

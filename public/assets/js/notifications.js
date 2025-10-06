@@ -61,10 +61,13 @@
      */
     function processNotifications(notifications) {
         let hasNewNotifications = false;
-        let hasPendingNotifications = false;
+        let hasPendingReservations = false;
+        
+        // Clear activeNotifications to rebuild the list
+        activeNotifications.clear();
         
         notifications.forEach(notification => {
-            // Solo procesar notificaciones nuevas
+            // Solo procesar notificaciones nuevas para mostrar
             if (notification.id > lastNotificationId) {
                 lastNotificationId = notification.id;
                 
@@ -75,22 +78,19 @@
                 }
             }
             
-            // Check if notification requires sound (pending status only)
-            // Sound should play persistently until admin confirms or cancels
-            if (notification.requires_sound && (
-                (notification.related_type === 'service_request' && notification.status !== 'completed') ||
-                (notification.related_type === 'room_reservation' && notification.status === 'pending') ||
+            // Check if notification is about a pending reservation
+            // Sound should play persistently for ALL pending reservations, not just new ones
+            if ((notification.related_type === 'room_reservation' && notification.status === 'pending') ||
                 (notification.related_type === 'table_reservation' && notification.status === 'pending') ||
-                (notification.related_type === 'amenity_reservation' && notification.status === 'pending'))) {
+                (notification.related_type === 'amenity_reservation' && notification.status === 'pending')) {
                 activeNotifications.add(notification.id);
-                hasPendingNotifications = true;
-            } else {
-                activeNotifications.delete(notification.id);
+                hasPendingReservations = true;
             }
         });
         
-        // Start or stop persistent sound based on active notifications
-        if (hasPendingNotifications && activeNotifications.size > 0) {
+        // Start or stop persistent sound based on pending reservations
+        // Sound will play continuously until all pending reservations are handled
+        if (hasPendingReservations && activeNotifications.size > 0) {
             startPersistentSound();
         } else {
             stopPersistentSound();
