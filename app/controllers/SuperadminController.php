@@ -699,4 +699,183 @@ class SuperadminController extends BaseController {
         }
         exit;
     }
+    
+    /**
+     * View User Details
+     */
+    public function viewUser($userId) {
+        try {
+            // Get user details
+            $stmt = $this->db->prepare("
+                SELECT u.*, 
+                       h.name as hotel_name,
+                       h.email as hotel_email
+                FROM users u
+                LEFT JOIN hotels h ON u.hotel_id = h.id
+                WHERE u.id = ?
+            ");
+            $stmt->execute([$userId]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$user) {
+                flash('error', 'Usuario no encontrado', 'danger');
+                redirect('superadmin/users');
+            }
+            
+            // Get user subscriptions
+            $stmt = $this->db->prepare("
+                SELECT us.*, 
+                       sp.name as plan_name,
+                       sp.price as plan_price,
+                       sp.billing_cycle,
+                       DATEDIFF(us.end_date, CURDATE()) as days_remaining
+                FROM user_subscriptions us
+                JOIN subscription_plans sp ON us.subscription_id = sp.id
+                WHERE us.user_id = ?
+                ORDER BY us.created_at DESC
+            ");
+            $stmt->execute([$userId]);
+            $subscriptions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            $this->view('superadmin/view_user', [
+                'title' => 'Detalles de Usuario',
+                'user' => $user,
+                'subscriptions' => $subscriptions
+            ]);
+        } catch (Exception $e) {
+            flash('error', 'Error al cargar los detalles del usuario: ' . $e->getMessage(), 'danger');
+            redirect('superadmin/users');
+        }
+    }
+    
+    /**
+     * Edit User
+     */
+    public function editUser($userId) {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->updateUser($userId);
+            return;
+        }
+        
+        try {
+            // Get user details
+            $stmt = $this->db->prepare("
+                SELECT u.*, 
+                       h.name as hotel_name
+                FROM users u
+                LEFT JOIN hotels h ON u.hotel_id = h.id
+                WHERE u.id = ?
+            ");
+            $stmt->execute([$userId]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$user) {
+                flash('error', 'Usuario no encontrado', 'danger');
+                redirect('superadmin/users');
+            }
+            
+            // Get all subscription plans
+            $stmt = $this->db->query("
+                SELECT * FROM subscription_plans 
+                WHERE is_active = 1 
+                ORDER BY sort_order
+            ");
+            $plans = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Get user's active subscription
+            $stmt = $this->db->prepare("
+                SELECT us.*, sp.name as plan_name
+                FROM user_subscriptions us
+                JOIN subscription_plans sp ON us.subscription_id = sp.id
+                WHERE us.user_id = ? AND us.status = 'active'
+                ORDER BY us.created_at DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$userId]);
+            $activeSubscription = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $this->view('superadmin/edit_user', [
+                'title' => 'Editar Usuario',
+                'user' => $user,
+                'plans' => $plans,
+                'activeSubscription' => $activeSubscription
+            ]);
+        } catch (Exception $e) {
+            flash('error', 'Error al cargar el usuario: ' . $e->getMessage(), 'danger');
+            redirect('superadmin/users');
+        }
+    }
+    
+    /**
+     * Update User
+     */
+    private function updateUser($userId) {
+        try {
+            $firstName = sanitize($_POST['first_name']);
+            $lastName = sanitize($_POST['last_name']);
+            $email = sanitize($_POST['email']);
+            $role = sanitize($_POST['role']);
+            $isActive = isset($_POST['is_active']) ? 1 : 0;
+            
+            // Update user basic info
+            $stmt = $this->db->prepare("
+                UPDATE users 
+                SET first_name = ?, last_name = ?, email = ?, role = ?, is_active = ?
+                WHERE id = ?
+            ");
+            $stmt->execute([$firstName, $lastName, $email, $role, $isActive, $userId]);
+            
+            // Handle subscription assignment if provided
+            if (isset($_POST['assign_plan']) && !empty($_POST['plan_id'])) {
+                $planId = (int)$_POST['plan_id'];
+                $isUnlimited = isset($_POST['is_unlimited']) ? 1 : 0;
+                
+                // Deactivate current active subscriptions
+                $stmt = $this->db->prepare("
+                    UPDATE user_subscriptions 
+                    SET status = 'cancelled', updated_at = NOW()
+                    WHERE user_id = ? AND status = 'active'
+                ");
+                $stmt->execute([$userId]);
+                
+                // Get plan details
+                $stmt = $this->db->prepare("SELECT * FROM subscription_plans WHERE id = ?");
+                $stmt->execute([$planId]);
+                $plan = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($plan) {
+                    $startDate = date('Y-m-d');
+                    $endDate = null;
+                    
+                    if ($isUnlimited) {
+                        // Unlimited plan - set end date to far future (e.g., 100 years)
+                        $endDate = date('Y-m-d', strtotime('+100 years'));
+                    } else {
+                        // Calculate end date based on billing cycle
+                        if ($plan['billing_cycle'] === 'monthly') {
+                            $endDate = date('Y-m-d', strtotime('+1 month'));
+                        } elseif ($plan['billing_cycle'] === 'annual') {
+                            $endDate = date('Y-m-d', strtotime('+1 year'));
+                        } else {
+                            $endDate = date('Y-m-d', strtotime('+' . $plan['trial_days'] . ' days'));
+                        }
+                    }
+                    
+                    // Create new subscription
+                    $stmt = $this->db->prepare("
+                        INSERT INTO user_subscriptions 
+                        (user_id, subscription_id, status, start_date, end_date, is_unlimited, created_at, updated_at)
+                        VALUES (?, ?, 'active', ?, ?, ?, NOW(), NOW())
+                    ");
+                    $stmt->execute([$userId, $planId, $startDate, $endDate, $isUnlimited]);
+                }
+            }
+            
+            flash('success', 'Usuario actualizado exitosamente', 'success');
+        } catch (Exception $e) {
+            flash('error', 'Error al actualizar el usuario: ' . $e->getMessage(), 'danger');
+        }
+        
+        redirect('superadmin/users');
+    }
 }

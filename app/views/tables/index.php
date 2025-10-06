@@ -69,7 +69,7 @@
                             <tr>
                                 <td>
                                     <?php if (!empty($table['primary_image'])): ?>
-                                        <img src="<?= BASE_URL ?>/<?= e($table['primary_image']) ?>" 
+                                        <img src="<?= BASE_URL ?>/public/<?= e($table['primary_image']) ?>" 
                                              alt="Mesa <?= e($table['table_number']) ?>" 
                                              style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;">
                                     <?php else: ?>
