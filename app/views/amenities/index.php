@@ -72,7 +72,7 @@
                             <tr>
                                 <td>
                                     <?php if (!empty($amenity['primary_image'])): ?>
-                                        <img src="<?= BASE_URL ?>/<?= e($amenity['primary_image']) ?>" 
+                                        <img src="<?= BASE_URL ?>/public/<?= e($amenity['primary_image']) ?>" 
                                              alt="<?= e($amenity['name']) ?>" 
                                              style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;">
                                     <?php else: ?>

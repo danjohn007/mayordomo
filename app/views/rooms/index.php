@@ -91,7 +91,7 @@
                             <tr>
                                 <td>
                                     <?php if (!empty($room['primary_image'])): ?>
-                                        <img src="<?= BASE_URL ?>/<?= e($room['primary_image']) ?>" 
+                                        <img src="<?= BASE_URL ?>/public/<?= e($room['primary_image']) ?>" 
                                              alt="Habitación <?= e($room['room_number']) ?>" 
                                              style="width: 60px; height: 60px; object-fit: cover; border-radius: 5px;">
                                     <?php else: ?>
