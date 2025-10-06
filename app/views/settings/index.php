@@ -5,9 +5,14 @@
         <h1><i class="bi bi-gear"></i> Configuraciones del Hotel</h1>
     </div>
 
-    <?php if (hasFlashMessage()): ?>
-        <?php $flash = getFlashMessage(); ?>
+    <?php if ($flash = flash('success')): ?>
         <div class="alert alert-<?= $flash['type'] === 'error' ? 'danger' : $flash['type'] ?> alert-dismissible fade show" role="alert">
+            <?= e($flash['message']) ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+    <?php if ($flash = flash('error')): ?>
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <?= e($flash['message']) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>

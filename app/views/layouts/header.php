@@ -171,7 +171,8 @@
                 $currentUser = currentUser();
                 $stmt = $db->prepare("
                     SELECT us.*, s.name as plan_name, s.price,
-                           DATEDIFF(us.end_date, CURDATE()) as days_remaining
+                           DATEDIFF(us.end_date, CURDATE()) as days_remaining,
+                           us.is_unlimited
                     FROM user_subscriptions us
                     JOIN subscriptions s ON us.subscription_id = s.id
                     WHERE us.user_id = ? AND us.status = 'active'
@@ -182,22 +183,32 @@
                 $subscription = $stmt->fetch(PDO::FETCH_ASSOC);
                 
                 if ($subscription):
+                    $isUnlimited = isset($subscription['is_unlimited']) && $subscription['is_unlimited'] == 1;
                     $daysRemaining = $subscription['days_remaining'] ?? 0;
-                    $badgeClass = $daysRemaining > 7 ? 'success' : ($daysRemaining > 0 ? 'warning' : 'danger');
+                    $badgeClass = $isUnlimited ? 'info' : ($daysRemaining > 7 ? 'success' : ($daysRemaining > 0 ? 'warning' : 'danger'));
                 ?>
                 <div class="card border-<?= $badgeClass ?> mb-0">
                     <div class="card-body p-2">
                         <h6 class="card-title mb-1 small"><i class="bi bi-credit-card"></i> Plan Activo</h6>
                         <p class="mb-1 small"><strong><?= e($subscription['plan_name']) ?></strong></p>
-                        <p class="mb-1 small text-muted"><?= formatCurrency($subscription['price']) ?></p>
-                        <p class="mb-2">
-                            <span class="badge bg-<?= $badgeClass ?> small">
-                                <?= $daysRemaining ?> días restantes
-                            </span>
-                        </p>
-                        <a href="<?= BASE_URL ?>/subscription" class="btn btn-<?= $badgeClass ?> btn-sm w-100">
-                            <i class="bi bi-arrow-up-circle"></i> Actualizar Plan
-                        </a>
+                        <?php if ($isUnlimited): ?>
+                            <p class="mb-1 small text-muted"><strong>Plan Ilimitado (Sin vencimiento)</strong></p>
+                            <p class="mb-2">
+                                <span class="badge bg-<?= $badgeClass ?> small">
+                                    ∞ Ilimitado
+                                </span>
+                            </p>
+                        <?php else: ?>
+                            <p class="mb-1 small text-muted"><?= formatCurrency($subscription['price']) ?></p>
+                            <p class="mb-2">
+                                <span class="badge bg-<?= $badgeClass ?> small">
+                                    <?= $daysRemaining ?> días restantes
+                                </span>
+                            </p>
+                            <a href="<?= BASE_URL ?>/subscription" class="btn btn-<?= $badgeClass ?> btn-sm w-100">
+                                <i class="bi bi-arrow-up-circle"></i> Actualizar Plan
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <?php else: ?>
