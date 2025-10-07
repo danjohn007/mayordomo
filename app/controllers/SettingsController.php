@@ -71,11 +71,11 @@ class SettingsController extends BaseController {
             
             $this->db->commit();
             
-            setFlashMessage('success', 'Configuraciones guardadas exitosamente');
+            flash('success', 'Configuraciones guardadas exitosamente', 'success');
         } catch (Exception $e) {
             $this->db->rollBack();
             error_log('Error saving settings: ' . $e->getMessage());
-            setFlashMessage('error', 'Error al guardar configuraciones: ' . $e->getMessage());
+            flash('error', 'Error al guardar configuraciones: ' . $e->getMessage(), 'danger');
         }
         
         redirect('/settings');
