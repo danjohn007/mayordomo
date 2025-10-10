@@ -30,20 +30,36 @@ class ServicesController extends BaseController {
     }
     
     public function create() {
-        $this->view('services/create', ['title' => 'Nueva Solicitud']);
+        $user = currentUser();
+        $serviceTypeCatalogModel = $this->model('ServiceTypeCatalog');
+        $serviceTypes = $serviceTypeCatalogModel->getAllActive($user['hotel_id']);
+        
+        $this->view('services/create', [
+            'title' => 'Nueva Solicitud',
+            'serviceTypes' => $serviceTypes
+        ]);
     }
     
     public function store() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') redirect('services');
         
         $user = currentUser();
+        
+        // Auto-assign to current user if they are admin, manager, or hostess
+        $assignedTo = null;
+        if (hasRole(['admin', 'manager', 'hostess'])) {
+            $assignedTo = $user['id'];
+        }
+        
         $data = [
             'hotel_id' => $user['hotel_id'],
             'guest_id' => $user['id'],
+            'service_type_id' => sanitize($_POST['service_type_id'] ?? null),
             'title' => sanitize($_POST['title'] ?? ''),
             'description' => sanitize($_POST['description'] ?? ''),
             'priority' => sanitize($_POST['priority'] ?? 'normal'),
-            'room_number' => sanitize($_POST['room_number'] ?? '')
+            'room_number' => sanitize($_POST['room_number'] ?? ''),
+            'assigned_to' => $assignedTo
         ];
         
         $model = $this->model('ServiceRequest');
@@ -88,6 +104,7 @@ class ServicesController extends BaseController {
     public function edit($id) {
         $this->requireRole(['admin', 'manager']);
         
+        $user = currentUser();
         $model = $this->model('ServiceRequest');
         $service = $model->findById($id);
         
@@ -96,9 +113,13 @@ class ServicesController extends BaseController {
             redirect('services');
         }
         
+        $serviceTypeCatalogModel = $this->model('ServiceTypeCatalog');
+        $serviceTypes = $serviceTypeCatalogModel->getAllActive($user['hotel_id']);
+        
         $this->view('services/edit', [
             'title' => 'Editar Solicitud',
-            'service' => $service
+            'service' => $service,
+            'serviceTypes' => $serviceTypes
         ]);
     }
     
@@ -107,7 +128,13 @@ class ServicesController extends BaseController {
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') redirect('services');
         
+        // Get current service to preserve assigned_to if not changed
+        $model = $this->model('ServiceRequest');
+        $currentService = $model->findById($id);
+        
         $data = [
+            'assigned_to' => $currentService['assigned_to'] ?? null,
+            'service_type_id' => sanitize($_POST['service_type_id'] ?? null),
             'title' => sanitize($_POST['title'] ?? ''),
             'description' => sanitize($_POST['description'] ?? ''),
             'priority' => sanitize($_POST['priority'] ?? 'normal'),
@@ -115,7 +142,6 @@ class ServicesController extends BaseController {
             'status' => sanitize($_POST['status'] ?? 'pending')
         ];
         
-        $model = $this->model('ServiceRequest');
         if ($model->update($id, $data)) {
             flash('success', 'Solicitud actualizada exitosamente', 'success');
         } else {
