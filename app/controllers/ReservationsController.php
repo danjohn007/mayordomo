@@ -229,15 +229,46 @@ class ReservationsController extends BaseController {
             } elseif ($type === 'amenity') {
                 $reservationDate = sanitize($_POST['reservation_date'] ?? '');
                 $reservationTime = sanitize($_POST['reservation_time'] ?? '');
+                $partySize = intval($_POST['party_size'] ?? 1);
                 
                 if (empty($reservationDate) || empty($reservationTime)) {
                     throw new Exception('La fecha y hora de reservación son requeridas');
                 }
                 
+                // Check amenity capacity and allow_overlap setting
+                $amenityStmt = $this->db->prepare("SELECT capacity, allow_overlap FROM amenities WHERE id = ?");
+                $amenityStmt->execute([$resourceId]);
+                $amenity = $amenityStmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($amenity) {
+                    // Check if party size exceeds capacity
+                    if ($amenity['capacity'] && $partySize > $amenity['capacity']) {
+                        throw new Exception('El número de personas (' . $partySize . ') excede la capacidad de la amenidad (' . $amenity['capacity'] . ')');
+                    }
+                    
+                    // If overlap is not allowed, check for existing reservations
+                    if (!$amenity['allow_overlap']) {
+                        $overlapStmt = $this->db->prepare("
+                            SELECT COUNT(*) as count 
+                            FROM amenity_reservations 
+                            WHERE amenity_id = ? 
+                            AND reservation_date = ? 
+                            AND reservation_time = ?
+                            AND status NOT IN ('cancelled', 'no_show')
+                        ");
+                        $overlapStmt->execute([$resourceId, $reservationDate, $reservationTime]);
+                        $overlapCount = $overlapStmt->fetch(PDO::FETCH_ASSOC)['count'];
+                        
+                        if ($overlapCount > 0) {
+                            throw new Exception('La amenidad ya tiene una reservación para esta fecha y hora');
+                        }
+                    }
+                }
+                
                 $stmt = $this->db->prepare("
                     INSERT INTO amenity_reservations 
-                    (hotel_id, amenity_id, user_id, guest_name, guest_email, guest_phone, reservation_date, reservation_time, status, notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (hotel_id, amenity_id, user_id, guest_name, guest_email, guest_phone, reservation_date, reservation_time, party_size, status, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $stmt->execute([
                     $currentUser['hotel_id'],
@@ -248,6 +279,7 @@ class ReservationsController extends BaseController {
                     $guestPhone,
                     $reservationDate,
                     $reservationTime,
+                    $partySize,
                     $status,
                     $notes
                 ]);

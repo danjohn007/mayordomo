@@ -55,7 +55,7 @@
                     <div id="existing_guest_section">
                         <div class="mb-3">
                             <label for="guest_search" class="form-label">Buscar Huésped</label>
-                            <input type="text" class="form-control" id="guest_search" placeholder="Buscar por nombre o email...">
+                            <input type="text" class="form-control" id="guest_search" placeholder="Buscar por nombre, email o teléfono...">
                         </div>
                         <div id="guest_results" class="list-group mb-3" style="display: none;"></div>
                         <input type="hidden" id="guest_id" name="guest_id">
@@ -63,6 +63,12 @@
 
                     <!-- Crear Nuevo Huésped -->
                     <div id="new_guest_section" style="display: none;">
+                        <div class="mb-3">
+                            <label for="guest_phone" class="form-label">Teléfono *</label>
+                            <input type="tel" class="form-control" id="guest_phone" name="guest_phone" placeholder="10 dígitos">
+                            <small class="text-muted">Ingrese el teléfono para verificar si el huésped ya existe</small>
+                        </div>
+                        <div id="phone_validation_message" class="alert" style="display: none;"></div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="guest_name" class="form-label">Nombre Completo *</label>
@@ -72,10 +78,6 @@
                                 <label for="guest_email" class="form-label">Email *</label>
                                 <input type="email" class="form-control" id="guest_email" name="guest_email">
                             </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="guest_phone" class="form-label">Teléfono *</label>
-                            <input type="tel" class="form-control" id="guest_phone" name="guest_phone" placeholder="10 dígitos">
                         </div>
                     </div>
 
@@ -112,7 +114,7 @@
                         </div>
                     </div>
 
-                    <!-- Party Size (solo para mesas) -->
+                    <!-- Party Size (para mesas y amenidades) -->
                     <div id="party_size_section" style="display: none;">
                         <div class="mb-3">
                             <label for="party_size" class="form-label">Número de Personas *</label>
@@ -196,12 +198,13 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (type === 'amenity') {
             roomDates.style.display = 'none';
             tableAmenityDates.style.display = 'block';
-            partySizeSection.style.display = 'none';
+            partySizeSection.style.display = 'block';
             resourceHelp.textContent = 'Seleccione una amenidad disponible';
             document.getElementById('check_in').required = false;
             document.getElementById('check_out').required = false;
             document.getElementById('reservation_date').required = true;
             document.getElementById('reservation_time').required = true;
+            document.getElementById('party_size').required = true;
         }
         
         // Load resources via AJAX
@@ -308,6 +311,61 @@ document.addEventListener('DOMContentLoaded', function() {
         guestResults.style.display = 'none';
     }
 
+    // Phone validation for new guest
+    let phoneCheckTimeout;
+    const guestPhoneInput = document.getElementById('guest_phone');
+    const guestNameInput = document.getElementById('guest_name');
+    const guestEmailInput = document.getElementById('guest_email');
+    const phoneValidationMessage = document.getElementById('phone_validation_message');
+    
+    guestPhoneInput.addEventListener('input', function() {
+        clearTimeout(phoneCheckTimeout);
+        const phone = this.value.trim();
+        
+        // Reset validation message
+        phoneValidationMessage.style.display = 'none';
+        
+        // Only check if phone is 10 digits
+        if (!/^\d{10}$/.test(phone)) {
+            if (phone.length > 0) {
+                phoneValidationMessage.className = 'alert alert-warning';
+                phoneValidationMessage.textContent = 'El teléfono debe tener exactamente 10 dígitos';
+                phoneValidationMessage.style.display = 'block';
+            }
+            return;
+        }
+        
+        // Check if phone exists
+        phoneCheckTimeout = setTimeout(() => {
+            checkPhoneExists(phone);
+        }, 500);
+    });
+    
+    function checkPhoneExists(phone) {
+        fetch('<?= BASE_URL ?>/api/check_phone.php?phone=' + encodeURIComponent(phone))
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.exists) {
+                    // Phone exists, preload data
+                    const guest = data.guest;
+                    guestIdInput.value = guest.id;
+                    guestNameInput.value = (guest.first_name + ' ' + guest.last_name).trim();
+                    guestEmailInput.value = guest.email;
+                    
+                    phoneValidationMessage.className = 'alert alert-info';
+                    phoneValidationMessage.textContent = 'Huésped encontrado. Puede modificar la información si es necesario.';
+                    phoneValidationMessage.style.display = 'block';
+                } else {
+                    // Phone doesn't exist, clear fields
+                    guestIdInput.value = '';
+                    phoneValidationMessage.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error checking phone:', error);
+            });
+    }
+    
     // Form validation before submit
     document.getElementById('reservationForm').addEventListener('submit', function(e) {
         const guestType = document.querySelector('input[name="guest_type"]:checked').value;

@@ -59,6 +59,19 @@
                                 <option value="cancelled" <?= $service['status'] === 'cancelled' ? 'selected' : '' ?>>Cancelado</option>
                             </select>
                         </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="assigned_to" class="form-label">Asignar a</label>
+                            <select class="form-select" id="assigned_to" name="assigned_to">
+                                <option value="">Sin asignar</option>
+                                <?php if (!empty($collaborators)): ?>
+                                    <?php foreach ($collaborators as $collab): ?>
+                                        <option value="<?= $collab['id'] ?>" <?= ($service['assigned_to'] == $collab['id']) ? 'selected' : '' ?>>
+                                            <?= e($collab['first_name']) ?> <?= e($collab['last_name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
                     </div>
                     
                     <div class="d-flex gap-2">
