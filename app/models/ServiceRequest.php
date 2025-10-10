@@ -14,10 +14,12 @@ class ServiceRequest {
         $sql = "
             SELECT sr.*, 
                    guest.first_name as guest_first_name, guest.last_name as guest_last_name,
-                   collab.first_name as collab_first_name, collab.last_name as collab_last_name
+                   collab.first_name as collab_first_name, collab.last_name as collab_last_name,
+                   stc.name as service_type_name, stc.icon as service_type_icon
             FROM service_requests sr
             JOIN users guest ON sr.guest_id = guest.id
             LEFT JOIN users collab ON sr.assigned_to = collab.id
+            LEFT JOIN service_type_catalog stc ON sr.service_type_id = stc.id
             WHERE 1=1
         ";
         $params = [];
@@ -66,10 +68,12 @@ class ServiceRequest {
         $stmt = $this->db->prepare("
             SELECT sr.*, 
                    guest.first_name as guest_first_name, guest.last_name as guest_last_name,
-                   collab.first_name as collab_first_name, collab.last_name as collab_last_name
+                   collab.first_name as collab_first_name, collab.last_name as collab_last_name,
+                   stc.name as service_type_name, stc.icon as service_type_icon
             FROM service_requests sr
             JOIN users guest ON sr.guest_id = guest.id
             LEFT JOIN users collab ON sr.assigned_to = collab.id
+            LEFT JOIN service_type_catalog stc ON sr.service_type_id = stc.id
             WHERE sr.id = ?
         ");
         $stmt->execute([$id]);
@@ -78,14 +82,15 @@ class ServiceRequest {
     
     public function create($data) {
         $stmt = $this->db->prepare("
-            INSERT INTO service_requests (hotel_id, guest_id, assigned_to, title, description, priority, status, room_number) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO service_requests (hotel_id, guest_id, assigned_to, service_type_id, title, description, priority, status, room_number) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         
         return $stmt->execute([
             $data['hotel_id'],
             $data['guest_id'],
             $data['assigned_to'] ?? null,
+            $data['service_type_id'] ?? null,
             $data['title'],
             $data['description'] ?? null,
             $data['priority'] ?? 'normal',
@@ -97,12 +102,13 @@ class ServiceRequest {
     public function update($id, $data) {
         $stmt = $this->db->prepare("
             UPDATE service_requests 
-            SET assigned_to = ?, title = ?, description = ?, priority = ?, status = ?, room_number = ?
+            SET assigned_to = ?, service_type_id = ?, title = ?, description = ?, priority = ?, status = ?, room_number = ?
             WHERE id = ?
         ");
         
         return $stmt->execute([
             $data['assigned_to'] ?? null,
+            $data['service_type_id'] ?? null,
             $data['title'],
             $data['description'] ?? null,
             $data['priority'],

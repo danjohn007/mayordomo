@@ -128,6 +128,45 @@
     </div>
     <?php endif; ?>
     
+    <!-- Gráficas -->
+    <div class="row mb-4">
+        <!-- Gráfica 1: Reservaciones por Tipo -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Reservaciones por Tipo</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartReservationsByType" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Gráfica 2: Estados de Reservaciones -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Estados de Reservaciones</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartReservationsByStatus" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Gráfica 3: Solicitudes Asignadas -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart-fill"></i> Solicitudes de Servicio</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartServiceAssignments" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <div class="row">
         <!-- Recent Reservations -->
         <div class="col-md-6">
@@ -258,6 +297,45 @@
                             <i class="bi bi-lock"></i>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráficas para Hostess -->
+    <div class="row mb-4">
+        <!-- Gráfica 1: Reservaciones por Tipo -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Reservaciones por Tipo</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartReservationsByType" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Gráfica 2: Estados de Reservaciones -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Estados de Reservaciones</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartReservationsByStatus" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Gráfica 3: Solicitudes Asignadas -->
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart-fill"></i> Solicitudes de Servicio</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartServiceAssignments" height="250"></canvas>
                 </div>
             </div>
         </div>
@@ -580,6 +658,155 @@
             </a>
         </div>
     </div>
+<?php endif; ?>
+
+<!-- Chart.js Scripts -->
+<?php if (in_array($user['role'], ['admin', 'manager', 'hostess'])): ?>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+// Gráfica 1: Reservaciones por Tipo
+<?php if (!empty($stats['chart_reservations_by_type'])): ?>
+const reservationsByTypeData = {
+    labels: [
+        <?php foreach ($stats['chart_reservations_by_type'] as $item): ?>
+            '<?= $item['reservation_type'] === 'room' ? 'Habitaciones' : ($item['reservation_type'] === 'table' ? 'Mesas' : 'Amenidades') ?>',
+        <?php endforeach; ?>
+    ],
+    datasets: [{
+        data: [
+            <?php foreach ($stats['chart_reservations_by_type'] as $item): ?>
+                <?= $item['count'] ?>,
+            <?php endforeach; ?>
+        ],
+        backgroundColor: ['#0dcaf0', '#198754', '#0d6efd'],
+        borderWidth: 1
+    }]
+};
+
+new Chart(document.getElementById('chartReservationsByType'), {
+    type: 'doughnut',
+    data: reservationsByTypeData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+<?php else: ?>
+document.getElementById('chartReservationsByType').parentElement.innerHTML = '<p class="text-muted text-center">No hay datos disponibles</p>';
+<?php endif; ?>
+
+// Gráfica 2: Estados de Reservaciones
+<?php if (!empty($stats['chart_reservations_by_status'])): ?>
+const reservationsByStatusData = {
+    labels: [
+        <?php foreach ($stats['chart_reservations_by_status'] as $item): ?>
+            '<?php 
+                $labels = [
+                    'pending' => 'Pendiente',
+                    'confirmed' => 'Confirmada',
+                    'checked_in' => 'Check-in',
+                    'seated' => 'Sentado',
+                    'completed' => 'Completada',
+                    'checked_out' => 'Check-out',
+                    'cancelled' => 'Cancelada'
+                ];
+                echo $labels[$item['status']] ?? $item['status'];
+            ?>',
+        <?php endforeach; ?>
+    ],
+    datasets: [{
+        label: 'Reservaciones',
+        data: [
+            <?php foreach ($stats['chart_reservations_by_status'] as $item): ?>
+                <?= $item['count'] ?>,
+            <?php endforeach; ?>
+        ],
+        backgroundColor: [
+            <?php foreach ($stats['chart_reservations_by_status'] as $item): ?>
+                '<?php 
+                    $colors = [
+                        'pending' => '#ffc107',
+                        'confirmed' => '#0dcaf0',
+                        'checked_in' => '#0d6efd',
+                        'seated' => '#0d6efd',
+                        'completed' => '#198754',
+                        'checked_out' => '#198754',
+                        'cancelled' => '#dc3545'
+                    ];
+                    echo $colors[$item['status']] ?? '#6c757d';
+                ?>',
+            <?php endforeach; ?>
+        ],
+        borderWidth: 1
+    }]
+};
+
+new Chart(document.getElementById('chartReservationsByStatus'), {
+    type: 'bar',
+    data: reservationsByStatusData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+<?php else: ?>
+document.getElementById('chartReservationsByStatus').parentElement.innerHTML = '<p class="text-muted text-center">No hay datos disponibles</p>';
+<?php endif; ?>
+
+// Gráfica 3: Solicitudes Asignadas vs Sin Asignar
+<?php if (!empty($stats['chart_service_assignments'])): ?>
+const serviceAssignmentsData = {
+    labels: [
+        <?php foreach ($stats['chart_service_assignments'] as $item): ?>
+            '<?= $item['assignment_status'] ?>',
+        <?php endforeach; ?>
+    ],
+    datasets: [{
+        data: [
+            <?php foreach ($stats['chart_service_assignments'] as $item): ?>
+                <?= $item['count'] ?>,
+            <?php endforeach; ?>
+        ],
+        backgroundColor: ['#198754', '#dc3545'],
+        borderWidth: 1
+    }]
+};
+
+new Chart(document.getElementById('chartServiceAssignments'), {
+    type: 'pie',
+    data: serviceAssignmentsData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+<?php else: ?>
+document.getElementById('chartServiceAssignments').parentElement.innerHTML = '<p class="text-muted text-center">No hay datos disponibles</p>';
+<?php endif; ?>
+</script>
 <?php endif; ?>
 
 <?php require_once APP_PATH . '/views/layouts/footer.php'; ?>
