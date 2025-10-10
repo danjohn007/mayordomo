@@ -312,11 +312,61 @@ class DashboardController extends BaseController {
         $stmt->execute([$hotelId, $hotelId, $startDate, $endDate]);
         $stats['chart_occupancy'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
+        // NEW: Reservations by type
+        $stmt = $this->db->prepare("
+            SELECT 
+                reservation_type,
+                COUNT(*) as count
+            FROM v_all_reservations
+            WHERE hotel_id = ?
+            AND DATE(created_at) BETWEEN ? AND ?
+            GROUP BY reservation_type
+        ");
+        $stmt->execute([$hotelId, $startDate, $endDate]);
+        $stats['chart_reservations_by_type'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // NEW: Reservations by status
+        $stmt = $this->db->prepare("
+            SELECT 
+                status,
+                COUNT(*) as count
+            FROM v_all_reservations
+            WHERE hotel_id = ?
+            AND DATE(created_at) BETWEEN ? AND ?
+            GROUP BY status
+        ");
+        $stmt->execute([$hotelId, $startDate, $endDate]);
+        $stats['chart_reservations_by_status'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // NEW: Service requests assigned vs pending
+        $stmt = $this->db->prepare("
+            SELECT 
+                CASE 
+                    WHEN assigned_to IS NOT NULL THEN 'Asignadas'
+                    ELSE 'Sin Asignar'
+                END as assignment_status,
+                COUNT(*) as count
+            FROM service_requests
+            WHERE hotel_id = ?
+            AND DATE(requested_at) BETWEEN ? AND ?
+            AND status NOT IN ('completed', 'cancelled')
+            GROUP BY assignment_status
+        ");
+        $stmt->execute([$hotelId, $startDate, $endDate]);
+        $stats['chart_service_assignments'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
         return $stats;
     }
     
     private function getHostessStats($hotelId) {
         $stats = [];
+        
+        // Date filters
+        $startDate = $_GET['start_date'] ?? date('Y-m-01');
+        $endDate = $_GET['end_date'] ?? date('Y-m-d');
+        
+        $stats['startDate'] = $startDate;
+        $stats['endDate'] = $endDate;
         
         // Available tables
         $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM restaurant_tables WHERE hotel_id = ? AND status = 'available'");
@@ -337,6 +387,49 @@ class DashboardController extends BaseController {
         $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM resource_blocks WHERE status = 'active'");
         $stmt->execute();
         $stats['active_blocks'] = $stmt->fetch()['count'];
+        
+        // NEW: Reservations by type (for charts)
+        $stmt = $this->db->prepare("
+            SELECT 
+                reservation_type,
+                COUNT(*) as count
+            FROM v_all_reservations
+            WHERE hotel_id = ?
+            AND DATE(created_at) BETWEEN ? AND ?
+            GROUP BY reservation_type
+        ");
+        $stmt->execute([$hotelId, $startDate, $endDate]);
+        $stats['chart_reservations_by_type'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // NEW: Reservations by status
+        $stmt = $this->db->prepare("
+            SELECT 
+                status,
+                COUNT(*) as count
+            FROM v_all_reservations
+            WHERE hotel_id = ?
+            AND DATE(created_at) BETWEEN ? AND ?
+            GROUP BY status
+        ");
+        $stmt->execute([$hotelId, $startDate, $endDate]);
+        $stats['chart_reservations_by_status'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // NEW: Service requests assigned vs pending
+        $stmt = $this->db->prepare("
+            SELECT 
+                CASE 
+                    WHEN assigned_to IS NOT NULL THEN 'Asignadas'
+                    ELSE 'Sin Asignar'
+                END as assignment_status,
+                COUNT(*) as count
+            FROM service_requests
+            WHERE hotel_id = ?
+            AND DATE(requested_at) BETWEEN ? AND ?
+            AND status NOT IN ('completed', 'cancelled')
+            GROUP BY assignment_status
+        ");
+        $stmt->execute([$hotelId, $startDate, $endDate]);
+        $stats['chart_service_assignments'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         return $stats;
     }

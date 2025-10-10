@@ -44,10 +44,90 @@ class SettingsController extends BaseController {
             $settings[$setting['setting_key']] = $value;
         }
         
+        // Get service type catalog
+        $catalogModel = $this->model('ServiceTypeCatalog');
+        $serviceTypes = $catalogModel->getAll($hotelId);
+        
         $this->view('settings/index', [
             'title' => 'Configuraciones del Hotel',
-            'settings' => $settings
+            'settings' => $settings,
+            'serviceTypes' => $serviceTypes
         ]);
+    }
+    
+    /**
+     * Add new service type
+     */
+    public function addServiceType() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('settings');
+            return;
+        }
+        
+        $user = currentUser();
+        $data = [
+            'hotel_id' => $user['hotel_id'],
+            'name' => sanitize($_POST['name'] ?? ''),
+            'description' => sanitize($_POST['description'] ?? ''),
+            'icon' => sanitize($_POST['icon'] ?? 'bi-wrench'),
+            'is_active' => 1,
+            'sort_order' => intval($_POST['sort_order'] ?? 0)
+        ];
+        
+        $catalogModel = $this->model('ServiceTypeCatalog');
+        if ($catalogModel->create($data)) {
+            flash('success', 'Tipo de servicio agregado exitosamente', 'success');
+        } else {
+            flash('error', 'Error al agregar tipo de servicio', 'danger');
+        }
+        
+        redirect('settings');
+    }
+    
+    /**
+     * Edit service type
+     */
+    public function editServiceType($id) {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('settings');
+            return;
+        }
+        
+        $data = [
+            'name' => sanitize($_POST['name'] ?? ''),
+            'description' => sanitize($_POST['description'] ?? ''),
+            'icon' => sanitize($_POST['icon'] ?? 'bi-wrench'),
+            'is_active' => isset($_POST['is_active']) ? 1 : 0,
+            'sort_order' => intval($_POST['sort_order'] ?? 0)
+        ];
+        
+        $catalogModel = $this->model('ServiceTypeCatalog');
+        if ($catalogModel->update($id, $data)) {
+            flash('success', 'Tipo de servicio actualizado exitosamente', 'success');
+        } else {
+            flash('error', 'Error al actualizar tipo de servicio', 'danger');
+        }
+        
+        redirect('settings');
+    }
+    
+    /**
+     * Delete service type
+     */
+    public function deleteServiceType($id) {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('settings');
+            return;
+        }
+        
+        $catalogModel = $this->model('ServiceTypeCatalog');
+        if ($catalogModel->delete($id)) {
+            flash('success', 'Tipo de servicio desactivado exitosamente', 'success');
+        } else {
+            flash('error', 'Error al desactivar tipo de servicio', 'danger');
+        }
+        
+        redirect('settings');
     }
     
     /**

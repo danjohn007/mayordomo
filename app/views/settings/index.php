@@ -78,6 +78,62 @@
                     </div>
                 </div>
 
+                <!-- Catálogo de Tipos de Servicio -->
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-list-ul"></i> Catálogo de Tipos de Servicio</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Gestiona los tipos de servicio disponibles para las solicitudes de los huéspedes.</p>
+                        
+                        <button type="button" class="btn btn-success btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#addServiceTypeModal">
+                            <i class="bi bi-plus-circle"></i> Agregar Tipo de Servicio
+                        </button>
+                        
+                        <?php if (!empty($serviceTypes)): ?>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Icono</th>
+                                            <th>Nombre</th>
+                                            <th>Descripción</th>
+                                            <th>Orden</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($serviceTypes as $type): ?>
+                                            <tr>
+                                                <td><i class="<?= e($type['icon']) ?>"></i></td>
+                                                <td><strong><?= e($type['name']) ?></strong></td>
+                                                <td><small><?= e($type['description']) ?></small></td>
+                                                <td><?= e($type['sort_order']) ?></td>
+                                                <td>
+                                                    <?php if ($type['is_active']): ?>
+                                                        <span class="badge bg-success">Activo</span>
+                                                    <?php else: ?>
+                                                        <span class="badge bg-secondary">Inactivo</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <button type="button" class="btn btn-sm btn-warning" 
+                                                            onclick="editServiceType(<?= $type['id'] ?>, '<?= e($type['name']) ?>', '<?= e($type['description']) ?>', '<?= e($type['icon']) ?>', <?= $type['sort_order'] ?>, <?= $type['is_active'] ?>)">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php else: ?>
+                            <div class="alert alert-info">No hay tipos de servicio configurados.</div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                
                 <div class="card mb-4">
                     <div class="card-body">
                         <button type="submit" class="btn btn-primary">
@@ -115,5 +171,96 @@
         </div>
     </div>
 </div>
+
+<!-- Modal: Agregar Tipo de Servicio -->
+<div class="modal fade" id="addServiceTypeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" action="<?= BASE_URL ?>/settings/addServiceType">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Agregar Tipo de Servicio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="description" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Icono Bootstrap (ej: bi-wrench)</label>
+                        <input type="text" class="form-control" name="icon" value="bi-wrench" placeholder="bi-wrench">
+                        <small class="text-muted">Ver iconos en: <a href="https://icons.getbootstrap.com/" target="_blank">Bootstrap Icons</a></small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Orden</label>
+                        <input type="number" class="form-control" name="sort_order" value="0">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Editar Tipo de Servicio -->
+<div class="modal fade" id="editServiceTypeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="POST" id="editServiceTypeForm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Tipo de Servicio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" name="name" id="edit_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="description" id="edit_description" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Icono Bootstrap</label>
+                        <input type="text" class="form-control" name="icon" id="edit_icon" placeholder="bi-wrench">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Orden</label>
+                        <input type="number" class="form-control" name="sort_order" id="edit_sort_order">
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" name="is_active" id="edit_is_active" value="1">
+                        <label class="form-check-label" for="edit_is_active">Activo</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Actualizar</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function editServiceType(id, name, description, icon, sortOrder, isActive) {
+    document.getElementById('edit_name').value = name;
+    document.getElementById('edit_description').value = description;
+    document.getElementById('edit_icon').value = icon;
+    document.getElementById('edit_sort_order').value = sortOrder;
+    document.getElementById('edit_is_active').checked = isActive == 1;
+    document.getElementById('editServiceTypeForm').action = '<?= BASE_URL ?>/settings/editServiceType/' + id;
+    
+    var modal = new bootstrap.Modal(document.getElementById('editServiceTypeModal'));
+    modal.show();
+}
+</script>
 
 <?php require_once APP_PATH . '/views/layouts/footer.php'; ?>

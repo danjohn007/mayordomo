@@ -2,6 +2,30 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1><i class="bi bi-calendar-check"></i> Reservaciones</h1>
+    
+    <!-- Botón Nueva Reservación con Dropdown -->
+    <div class="btn-group">
+        <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-plus-circle"></i> Nueva Reservación
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+                <a class="dropdown-item" href="<?= BASE_URL ?>/rooms">
+                    <i class="bi bi-door-closed text-info"></i> Habitación
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" href="<?= BASE_URL ?>/tables">
+                    <i class="bi bi-table text-success"></i> Mesa
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" href="<?= BASE_URL ?>/amenities">
+                    <i class="bi bi-spa text-primary"></i> Amenidad
+                </a>
+            </li>
+        </ul>
+    </div>
 </div>
 
 <?php if ($flash = flash('success')) echo '<div class="alert alert-' . $flash['type'] . ' alert-dismissible fade show">' . $flash['message'] . '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>'; ?>
