@@ -56,7 +56,8 @@
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Título</th>
+                            <th>Tipo de Servicio</th>
+                            <th>Descripción</th>
                             <th>Huésped</th>
                             <th>Habitación</th>
                             <th>Prioridad</th>
@@ -69,7 +70,15 @@
                     <tbody>
                         <?php foreach ($requests as $req): ?>
                             <tr>
-                                <td><strong><?= e($req['title']) ?></strong></td>
+                                <td>
+                                    <?php if (!empty($req['service_type_name'])): ?>
+                                        <i class="bi <?= e($req['service_type_icon'] ?? 'bi-wrench') ?>"></i>
+                                        <strong><?= e($req['service_type_name']) ?></strong>
+                                    <?php else: ?>
+                                        <span class="text-muted">Sin tipo</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?= e($req['title']) ?: '-' ?></td>
                                 <td><?= e($req['guest_first_name']) ?> <?= e($req['guest_last_name']) ?></td>
                                 <td><?= e($req['room_number']) ?: '-' ?></td>
                                 <td><?= getPriorityBadge($req['priority']) ?></td>

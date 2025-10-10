@@ -9,8 +9,22 @@
                 
                 <form method="POST" action="<?= BASE_URL ?>/services/update/<?= $service['id'] ?>">
                     <div class="mb-3">
-                        <label for="title" class="form-label">Título *</label>
-                        <input type="text" class="form-control" id="title" name="title" value="<?= e($service['title']) ?>" required>
+                        <label for="service_type_id" class="form-label">Tipo de Servicio *</label>
+                        <select class="form-select" id="service_type_id" name="service_type_id" required>
+                            <option value="">Seleccione un tipo de servicio...</option>
+                            <?php if (!empty($serviceTypes)): ?>
+                                <?php foreach ($serviceTypes as $type): ?>
+                                    <option value="<?= $type['id'] ?>" <?= ($service['service_type_id'] == $type['id']) ? 'selected' : '' ?>>
+                                        <?= e($type['name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Descripción breve</label>
+                        <input type="text" class="form-control" id="title" name="title" value="<?= e($service['title']) ?>" placeholder="Opcional - descripción adicional">
                     </div>
                     
                     <div class="row">

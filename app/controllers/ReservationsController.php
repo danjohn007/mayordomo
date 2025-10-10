@@ -78,6 +78,194 @@ class ReservationsController extends BaseController {
     }
     
     /**
+     * Mostrar formulario de crear reservación
+     */
+    public function create() {
+        if (!hasRole(['admin', 'manager', 'hostess'])) {
+            flash('error', 'No tienes permiso para acceder a esta página', 'danger');
+            redirect('dashboard');
+        }
+        
+        $this->view('reservations/create', [
+            'title' => 'Nueva Reservación'
+        ]);
+    }
+    
+    /**
+     * Guardar nueva reservación
+     */
+    public function store() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('reservations');
+        }
+        
+        if (!hasRole(['admin', 'manager', 'hostess'])) {
+            flash('error', 'No tienes permiso para realizar esta acción', 'danger');
+            redirect('reservations');
+        }
+        
+        $currentUser = currentUser();
+        $type = sanitize($_POST['reservation_type'] ?? '');
+        $resourceId = intval($_POST['resource_id'] ?? 0);
+        $status = sanitize($_POST['status'] ?? 'pending');
+        $notes = sanitize($_POST['notes'] ?? '');
+        $guestType = sanitize($_POST['guest_type'] ?? 'existing');
+        
+        try {
+            $this->db->beginTransaction();
+            
+            // Determine guest_id
+            $guestId = null;
+            if ($guestType === 'existing') {
+                $guestId = intval($_POST['guest_id'] ?? 0);
+                if (!$guestId) {
+                    throw new Exception('Debe seleccionar un huésped');
+                }
+            } else {
+                // Create new guest
+                $guestName = sanitize($_POST['guest_name'] ?? '');
+                $guestEmail = sanitize($_POST['guest_email'] ?? '');
+                $guestPhone = sanitize($_POST['guest_phone'] ?? '');
+                
+                if (empty($guestName) || empty($guestEmail) || empty($guestPhone)) {
+                    throw new Exception('Todos los campos del huésped son requeridos');
+                }
+                
+                // Validate phone (10 digits)
+                if (!preg_match('/^\d{10}$/', $guestPhone)) {
+                    throw new Exception('El teléfono debe tener exactamente 10 dígitos');
+                }
+                
+                // Check if email exists
+                $userModel = $this->model('User');
+                if ($userModel->emailExists($guestEmail)) {
+                    $existingUser = $userModel->findByEmail($guestEmail);
+                    $guestId = $existingUser['id'];
+                } else {
+                    // Create new user
+                    $nameParts = explode(' ', $guestName);
+                    $firstName = $nameParts[0];
+                    $lastName = implode(' ', array_slice($nameParts, 1));
+                    
+                    $userData = [
+                        'email' => $guestEmail,
+                        'password' => password_hash(bin2hex(random_bytes(8)), PASSWORD_DEFAULT),
+                        'first_name' => $firstName,
+                        'last_name' => $lastName,
+                        'phone' => $guestPhone,
+                        'role' => 'guest',
+                        'hotel_id' => $currentUser['hotel_id'],
+                        'is_active' => 1
+                    ];
+                    
+                    if ($userModel->create($userData)) {
+                        $guestId = $this->db->lastInsertId();
+                    } else {
+                        throw new Exception('Error al crear el huésped');
+                    }
+                }
+            }
+            
+            // Get guest info
+            $userModel = $this->model('User');
+            $guest = $userModel->findById($guestId);
+            $guestName = $guest['first_name'] . ' ' . $guest['last_name'];
+            $guestEmail = $guest['email'];
+            $guestPhone = $guest['phone'] ?? '';
+            
+            // Create reservation based on type
+            if ($type === 'room') {
+                $checkIn = sanitize($_POST['check_in'] ?? '');
+                $checkOut = sanitize($_POST['check_out'] ?? '');
+                
+                if (empty($checkIn) || empty($checkOut)) {
+                    throw new Exception('Las fechas de check-in y check-out son requeridas');
+                }
+                
+                $stmt = $this->db->prepare("
+                    INSERT INTO room_reservations 
+                    (hotel_id, room_id, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, total_price, status, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+                ");
+                $stmt->execute([
+                    $currentUser['hotel_id'],
+                    $resourceId,
+                    $guestId,
+                    $guestName,
+                    $guestEmail,
+                    $guestPhone,
+                    $checkIn,
+                    $checkOut,
+                    $status,
+                    $notes
+                ]);
+            } elseif ($type === 'table') {
+                $reservationDate = sanitize($_POST['reservation_date'] ?? '');
+                $reservationTime = sanitize($_POST['reservation_time'] ?? '');
+                $partySize = intval($_POST['party_size'] ?? 1);
+                
+                if (empty($reservationDate) || empty($reservationTime)) {
+                    throw new Exception('La fecha y hora de reservación son requeridas');
+                }
+                
+                $stmt = $this->db->prepare("
+                    INSERT INTO table_reservations 
+                    (hotel_id, table_id, guest_id, guest_name, guest_email, guest_phone, reservation_date, reservation_time, party_size, status, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                $stmt->execute([
+                    $currentUser['hotel_id'],
+                    $resourceId,
+                    $guestId,
+                    $guestName,
+                    $guestEmail,
+                    $guestPhone,
+                    $reservationDate,
+                    $reservationTime,
+                    $partySize,
+                    $status,
+                    $notes
+                ]);
+            } elseif ($type === 'amenity') {
+                $reservationDate = sanitize($_POST['reservation_date'] ?? '');
+                $reservationTime = sanitize($_POST['reservation_time'] ?? '');
+                
+                if (empty($reservationDate) || empty($reservationTime)) {
+                    throw new Exception('La fecha y hora de reservación son requeridas');
+                }
+                
+                $stmt = $this->db->prepare("
+                    INSERT INTO amenity_reservations 
+                    (hotel_id, amenity_id, user_id, guest_name, guest_email, guest_phone, reservation_date, reservation_time, status, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                $stmt->execute([
+                    $currentUser['hotel_id'],
+                    $resourceId,
+                    $guestId,
+                    $guestName,
+                    $guestEmail,
+                    $guestPhone,
+                    $reservationDate,
+                    $reservationTime,
+                    $status,
+                    $notes
+                ]);
+            } else {
+                throw new Exception('Tipo de reservación inválido');
+            }
+            
+            $this->db->commit();
+            flash('success', 'Reservación creada exitosamente', 'success');
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            flash('error', 'Error al crear la reservación: ' . $e->getMessage(), 'danger');
+        }
+        
+        redirect('reservations');
+    }
+    
+    /**
      * Aceptar/Confirmar una reservación
      */
     public function accept($id) {
