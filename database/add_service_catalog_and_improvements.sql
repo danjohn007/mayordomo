@@ -141,7 +141,10 @@ WHERE NOT EXISTS (
 
 -- Agregar nueva columna service_type_id (puede ser NULL para compatibilidad)
 ALTER TABLE service_requests 
-ADD COLUMN IF NOT EXISTS service_type_id INT NULL AFTER title,
+ADD COLUMN service_type_id INT NULL AFTER title;
+
+-- Agregar la llave foránea
+ALTER TABLE service_requests
 ADD CONSTRAINT fk_service_type 
     FOREIGN KEY (service_type_id) 
     REFERENCES service_type_catalog(id) 
@@ -149,7 +152,7 @@ ADD CONSTRAINT fk_service_type
 
 -- Crear índice para mejor rendimiento
 ALTER TABLE service_requests
-ADD INDEX IF NOT EXISTS idx_service_type (service_type_id);
+ADD INDEX idx_service_type (service_type_id);
 
 -- ====================================================================
 -- PASO 4: Migrar datos existentes (si hay)
