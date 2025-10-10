@@ -62,6 +62,38 @@
                         <label class="form-check-label" for="is_available">Disponible</label>
                     </div>
                     
+                    <hr class="my-4">
+                    <h5 class="mb-3"><i class="bi bi-calendar-check"></i> Configuración de Reservaciones</h5>
+                    
+                    <div class="mb-3 form-check form-switch">
+                        <input type="checkbox" class="form-check-input" id="allow_overlap" name="allow_overlap" <?= ($amenity['allow_overlap'] ?? 1) ? 'checked' : '' ?> onchange="toggleOverlapSettings()">
+                        <label class="form-check-label" for="allow_overlap">
+                            <strong>Permitir empalmar con mismo horario y fecha</strong>
+                        </label>
+                        <div class="form-text">Cuando está activado, múltiples huéspedes pueden reservar esta amenidad al mismo tiempo.</div>
+                    </div>
+                    
+                    <div id="overlap_settings" style="display: <?= ($amenity['allow_overlap'] ?? 1) ? 'none' : 'block' ?>;">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> 
+                            <strong>Configuración cuando NO se permite empalmar:</strong> 
+                            Define la capacidad máxima de reservaciones simultáneas y el tiempo de bloqueo.
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="max_reservations" class="form-label">Capacidad Máxima de Reservaciones</label>
+                                <input type="number" class="form-control" id="max_reservations" name="max_reservations" min="1" value="<?= e($amenity['max_reservations'] ?? 1) ?>">
+                                <div class="form-text">Número máximo de reservaciones simultáneas permitidas</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="block_duration_hours" class="form-label">Horas de Bloqueo</label>
+                                <input type="number" class="form-control" id="block_duration_hours" name="block_duration_hours" min="0.5" step="0.5" value="<?= e($amenity['block_duration_hours'] ?? 2.00) ?>">
+                                <div class="form-text">Tiempo en horas que se bloqueará la amenidad</div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <?php
                     // Get existing images
                     $imageModel = getModel('ResourceImage', $db ?? null);
@@ -112,5 +144,29 @@
         </div>
     </div>
 </div>
+
+<script>
+function toggleOverlapSettings() {
+    const allowOverlap = document.getElementById('allow_overlap').checked;
+    const overlapSettings = document.getElementById('overlap_settings');
+    const maxReservations = document.getElementById('max_reservations');
+    const blockDuration = document.getElementById('block_duration_hours');
+    
+    if (allowOverlap) {
+        overlapSettings.style.display = 'none';
+        maxReservations.required = false;
+        blockDuration.required = false;
+    } else {
+        overlapSettings.style.display = 'block';
+        maxReservations.required = true;
+        blockDuration.required = true;
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleOverlapSettings();
+});
+</script>
 
 <?php require_once APP_PATH . '/views/layouts/footer.php'; ?>
