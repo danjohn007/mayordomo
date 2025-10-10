@@ -53,8 +53,8 @@ class Amenity {
     
     public function create($data) {
         $stmt = $this->db->prepare("
-            INSERT INTO amenities (hotel_id, name, category, price, capacity, opening_time, closing_time, description, is_available) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO amenities (hotel_id, name, category, price, capacity, opening_time, closing_time, description, is_available, allow_overlap, max_reservations, block_duration_hours) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         
         return $stmt->execute([
@@ -66,14 +66,17 @@ class Amenity {
             $data['opening_time'] ?? null,
             $data['closing_time'] ?? null,
             $data['description'] ?? null,
-            $data['is_available'] ?? 1
+            $data['is_available'] ?? 1,
+            $data['allow_overlap'] ?? 1,
+            $data['max_reservations'] ?? null,
+            $data['block_duration_hours'] ?? 2.00
         ]);
     }
     
     public function update($id, $data) {
         $stmt = $this->db->prepare("
             UPDATE amenities 
-            SET name = ?, category = ?, price = ?, capacity = ?, opening_time = ?, closing_time = ?, description = ?, is_available = ?
+            SET name = ?, category = ?, price = ?, capacity = ?, opening_time = ?, closing_time = ?, description = ?, is_available = ?, allow_overlap = ?, max_reservations = ?, block_duration_hours = ?
             WHERE id = ?
         ");
         
@@ -86,6 +89,9 @@ class Amenity {
             $data['closing_time'] ?? null,
             $data['description'] ?? null,
             $data['is_available'],
+            $data['allow_overlap'] ?? 1,
+            $data['max_reservations'] ?? null,
+            $data['block_duration_hours'] ?? 2.00,
             $id
         ]);
     }

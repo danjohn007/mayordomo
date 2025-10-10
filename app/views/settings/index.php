@@ -30,29 +30,49 @@
                             <input 
                                 class="form-check-input" 
                                 type="checkbox" 
-                                id="allow_reservation_overlap" 
-                                name="allow_reservation_overlap"
+                                id="allow_table_overlap" 
+                                name="allow_table_overlap"
                                 value="1"
-                                <?= isset($settings['allow_reservation_overlap']) && $settings['allow_reservation_overlap'] ? 'checked' : '' ?>
+                                <?= isset($settings['allow_table_overlap']) && $settings['allow_table_overlap'] ? 'checked' : '' ?>
                             >
-                            <label class="form-check-label" for="allow_reservation_overlap">
-                                <strong>Permitir empalmar reservaciones con mismo horario y fecha</strong>
+                            <label class="form-check-label" for="allow_table_overlap">
+                                <strong>Permitir empalmar reservaciones de mesas con mismo horario y fecha</strong>
+                            </label>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input 
+                                class="form-check-input" 
+                                type="checkbox" 
+                                id="allow_room_overlap" 
+                                name="allow_room_overlap"
+                                value="1"
+                                <?= isset($settings['allow_room_overlap']) && $settings['allow_room_overlap'] ? 'checked' : '' ?>
+                            >
+                            <label class="form-check-label" for="allow_room_overlap">
+                                <strong>Permitir empalmar reservaciones de habitaciones con mismo horario y fecha</strong>
                             </label>
                         </div>
                         
                         <div class="alert alert-info mb-0">
-                            <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Información sobre esta configuración:</h6>
-                            <p class="mb-2"><strong>Cuando está activada:</strong></p>
+                            <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Información sobre estas configuraciones:</h6>
+                            <p class="mb-2"><strong>Mesas:</strong></p>
                             <ul class="mb-2">
-                                <li>Se permite que múltiples huéspedes reserven el mismo recurso (habitación, mesa o amenidad) en el mismo horario y fecha.</li>
-                                <li>No se validará la disponibilidad del recurso.</li>
+                                <li><strong>Activada (por defecto):</strong> Múltiples huéspedes pueden reservar la misma mesa.</li>
+                                <li><strong>Desactivada:</strong> Se bloquean por 2 horas desde la hora de reservación.</li>
                             </ul>
                             
-                            <p class="mb-2"><strong>Cuando está desactivada (recomendado):</strong></p>
+                            <p class="mb-2"><strong>Habitaciones:</strong></p>
+                            <ul class="mb-2">
+                                <li><strong>Activada:</strong> Múltiples huéspedes pueden reservar la misma habitación.</li>
+                                <li><strong>Desactivada (por defecto):</strong> Se bloquean por 21 horas de 15:00 a 12:00 del día siguiente.</li>
+                            </ul>
+                            
+                            <p class="mb-2"><strong>Amenidades:</strong></p>
                             <ul class="mb-0">
-                                <li><strong>Habitaciones:</strong> Se bloquean hasta las 15:00 hrs del día siguiente al check-in.</li>
-                                <li><strong>Mesas y Amenidades:</strong> Se bloquean únicamente por 2 horas desde la hora de reservación.</li>
-                                <li>El sistema validará que el recurso esté disponible antes de confirmar la reservación.</li>
+                                <li>Las amenidades tienen su propia configuración individual.</li>
+                                <li>Cada amenidad puede configurarse para permitir o no empalme.</li>
+                                <li>Cuando no se permite empalme, se puede definir capacidad máxima y tiempo de bloqueo.</li>
                             </ul>
                         </div>
                     </div>

@@ -50,9 +50,10 @@ class ChatbotController extends BaseController {
             exit;
         }
         
-        // Check if hotel allows reservation overlap
+        // Check hotel settings for rooms and tables
         require_once APP_PATH . '/controllers/SettingsController.php';
-        $allowOverlap = SettingsController::getSetting($hotelId, 'allow_reservation_overlap', false);
+        $allowRoomOverlap = SettingsController::getSetting($hotelId, 'allow_room_overlap', false);
+        $allowTableOverlap = SettingsController::getSetting($hotelId, 'allow_table_overlap', true);
         
         // Get available resources
         $available = [];
@@ -69,21 +70,21 @@ class ChatbotController extends BaseController {
             $rooms = $stmt->fetchAll();
             
             foreach ($rooms as $room) {
-                if ($allowOverlap) {
+                if ($allowRoomOverlap) {
                     // Allow all rooms if overlap is enabled
                     $available[] = $room;
                 } else {
                     // Check if room is available
-                    // Rooms are blocked until 15:00 the day after check-in
+                    // Rooms are blocked for 21 hours: from 15:00 to 12:00 next day
                     $stmt = $this->db->prepare("
                         SELECT COUNT(*) as conflicts
                         FROM room_reservations
                         WHERE room_id = ?
                           AND status IN ('confirmed', 'checked_in', 'pending')
                           AND (
-                              (check_in <= ? AND DATE_ADD(check_out, INTERVAL 15 HOUR) > ?)
-                              OR (check_in < ? AND DATE_ADD(check_out, INTERVAL 15 HOUR) >= ?)
-                              OR (check_in >= ? AND DATE_ADD(check_out, INTERVAL 15 HOUR) <= DATE_ADD(?, INTERVAL 15 HOUR))
+                              (check_in <= ? AND DATE_ADD(DATE_ADD(check_out, INTERVAL -12 HOUR), INTERVAL 1 DAY) > ?)
+                              OR (check_in < ? AND DATE_ADD(DATE_ADD(check_out, INTERVAL -12 HOUR), INTERVAL 1 DAY) >= ?)
+                              OR (check_in >= ? AND DATE_ADD(DATE_ADD(check_out, INTERVAL -12 HOUR), INTERVAL 1 DAY) <= DATE_ADD(DATE_ADD(?, INTERVAL -12 HOUR), INTERVAL 1 DAY))
                           )
                     ");
                     $stmt->execute([$room['id'], $checkIn, $checkIn, $checkOut, $checkOut, $checkIn, $checkOut]);
@@ -106,7 +107,7 @@ class ChatbotController extends BaseController {
             $tables = $stmt->fetchAll();
             
             foreach ($tables as $table) {
-                if ($allowOverlap) {
+                if ($allowTableOverlap) {
                     // Allow all tables if overlap is enabled
                     $available[] = $table;
                 } else {
@@ -148,13 +149,19 @@ class ChatbotController extends BaseController {
             $amenities = $stmt->fetchAll();
             
             foreach ($amenities as $amenity) {
-                if ($allowOverlap) {
-                    // Allow all amenities if overlap is enabled
+                // Amenities have individual allow_overlap settings
+                $allowAmenityOverlap = $amenity['allow_overlap'] ?? 1;
+                
+                if ($allowAmenityOverlap) {
+                    // Allow all amenities if overlap is enabled for this amenity
                     $available[] = $amenity;
                 } else {
-                    // Check if amenity is available
-                    // Amenities are blocked for 2 hours from reservation time
+                    // Check if amenity is available based on its configuration
+                    $blockDuration = $amenity['block_duration_hours'] ?? 2.00;
+                    $maxReservations = $amenity['max_reservations'] ?? 1;
+                    
                     if (!empty($reservationTime)) {
+                        // Check existing reservations in the time block
                         $stmt = $this->db->prepare("
                             SELECT COUNT(*) as conflicts
                             FROM amenity_reservations
@@ -162,14 +169,21 @@ class ChatbotController extends BaseController {
                               AND status IN ('confirmed', 'in_use', 'pending')
                               AND reservation_date = ?
                               AND (
-                                  (reservation_time <= ? AND ADDTIME(reservation_time, '02:00:00') > ?)
-                                  OR (reservation_time >= ? AND reservation_time < ADDTIME(?, '02:00:00'))
+                                  (reservation_time <= ? AND ADDTIME(reservation_time, ?) > ?)
+                                  OR (reservation_time >= ? AND reservation_time < ADDTIME(?, ?))
                               )
                         ");
-                        $stmt->execute([$amenity['id'], $checkIn, $reservationTime, $reservationTime, $reservationTime, $reservationTime]);
+                        $blockDurationTime = sprintf('%02d:%02d:00', floor($blockDuration), ($blockDuration - floor($blockDuration)) * 60);
+                        $stmt->execute([
+                            $amenity['id'], 
+                            $checkIn, 
+                            $reservationTime, $blockDurationTime, $reservationTime,
+                            $reservationTime, $reservationTime, $blockDurationTime
+                        ]);
                         $result = $stmt->fetch();
                         
-                        if ($result['conflicts'] == 0) {
+                        // Check if we're under the max reservation limit
+                        if ($result['conflicts'] < $maxReservations) {
                             $available[] = $amenity;
                         }
                     } else {
@@ -249,77 +263,94 @@ class ChatbotController extends BaseController {
         try {
             $this->db->beginTransaction();
             
-            // Check if hotel allows reservation overlap
+            // Check hotel settings for rooms and tables
             require_once APP_PATH . '/controllers/SettingsController.php';
-            $allowOverlap = SettingsController::getSetting($data['hotel_id'], 'allow_reservation_overlap', false);
+            $allowRoomOverlap = SettingsController::getSetting($data['hotel_id'], 'allow_room_overlap', false);
+            $allowTableOverlap = SettingsController::getSetting($data['hotel_id'], 'allow_table_overlap', true);
             
-            // Validate availability unless overlap is allowed
-            if (!$allowOverlap) {
-                if ($data['resource_type'] === 'room') {
-                    // Check room availability (blocked until 15:00 next day)
-                    $stmt = $this->db->prepare("
-                        SELECT COUNT(*) as conflicts
-                        FROM room_reservations
-                        WHERE room_id = ?
-                          AND status IN ('confirmed', 'checked_in', 'pending')
-                          AND (
-                              (check_in <= ? AND DATE_ADD(check_out, INTERVAL 15 HOUR) > ?)
-                              OR (check_in < ? AND DATE_ADD(check_out, INTERVAL 15 HOUR) >= ?)
-                              OR (check_in >= ? AND DATE_ADD(check_out, INTERVAL 15 HOUR) <= DATE_ADD(?, INTERVAL 15 HOUR))
-                          )
-                    ");
-                    $stmt->execute([$data['resource_id'], $data['check_in_date'], $data['check_in_date'], 
-                                   $data['check_out_date'], $data['check_out_date'], 
-                                   $data['check_in_date'], $data['check_out_date']]);
-                    $result = $stmt->fetch();
+            // Validate availability based on resource type
+            if ($data['resource_type'] === 'room' && !$allowRoomOverlap) {
+                // Check room availability (blocked for 21 hours: from 15:00 to 12:00 next day)
+                $stmt = $this->db->prepare("
+                    SELECT COUNT(*) as conflicts
+                    FROM room_reservations
+                    WHERE room_id = ?
+                      AND status IN ('confirmed', 'checked_in', 'pending')
+                      AND (
+                          (check_in <= ? AND DATE_ADD(DATE_ADD(check_out, INTERVAL -12 HOUR), INTERVAL 1 DAY) > ?)
+                          OR (check_in < ? AND DATE_ADD(DATE_ADD(check_out, INTERVAL -12 HOUR), INTERVAL 1 DAY) >= ?)
+                          OR (check_in >= ? AND DATE_ADD(DATE_ADD(check_out, INTERVAL -12 HOUR), INTERVAL 1 DAY) <= DATE_ADD(DATE_ADD(?, INTERVAL -12 HOUR), INTERVAL 1 DAY))
+                      )
+                ");
+                $stmt->execute([$data['resource_id'], $data['check_in_date'], $data['check_in_date'], 
+                               $data['check_out_date'], $data['check_out_date'], 
+                               $data['check_in_date'], $data['check_out_date']]);
+                $result = $stmt->fetch();
+                
+                if ($result['conflicts'] > 0) {
+                    echo json_encode(['success' => false, 'message' => 'La habitación no está disponible para las fechas seleccionadas.']);
+                    exit;
+                }
+            } elseif ($data['resource_type'] === 'table' && !$allowTableOverlap && !empty($data['reservation_time'])) {
+                // Check table availability (blocked for 2 hours)
+                $stmt = $this->db->prepare("
+                    SELECT COUNT(*) as conflicts
+                    FROM table_reservations
+                    WHERE table_id = ?
+                      AND status IN ('confirmed', 'seated', 'pending')
+                      AND reservation_date = ?
+                      AND (
+                          (CAST(reservation_time AS CHAR) <= ? AND CAST(ADDTIME(reservation_time, '02:00:00') AS CHAR) > ?)
+                          OR (CAST(reservation_time AS CHAR) >= ? AND CAST(reservation_time AS CHAR) < CAST(ADDTIME(?, '02:00:00') AS CHAR))
+                      )
+                ");
+                $stmt->execute([$data['resource_id'], $data['check_in_date'], 
+                               $data['reservation_time'], $data['reservation_time'],
+                               $data['reservation_time'], $data['reservation_time']]);
+                $result = $stmt->fetch();
+                
+                if ($result['conflicts'] > 0) {
+                    echo json_encode(['success' => false, 'message' => 'La mesa no está disponible para el horario seleccionado.']);
+                    exit;
+                }
+            } elseif ($data['resource_type'] === 'amenity' && !empty($data['reservation_time'])) {
+                // Get amenity configuration
+                $stmt = $this->db->prepare("SELECT allow_overlap, max_reservations, block_duration_hours FROM amenities WHERE id = ?");
+                $stmt->execute([$data['resource_id']]);
+                $amenity = $stmt->fetch();
+                
+                if ($amenity) {
+                    $allowAmenityOverlap = $amenity['allow_overlap'] ?? 1;
                     
-                    if ($result['conflicts'] > 0) {
-                        echo json_encode(['success' => false, 'message' => 'La habitación no está disponible para las fechas seleccionadas.']);
-                        exit;
-                    }
-                } elseif ($data['resource_type'] === 'table' && !empty($data['reservation_time'])) {
-                    // Check table availability (blocked for 2 hours)
-                    $stmt = $this->db->prepare("
-                        SELECT COUNT(*) as conflicts
-                        FROM table_reservations
-                        WHERE table_id = ?
-                          AND status IN ('confirmed', 'seated', 'pending')
-                          AND reservation_date = ?
-                          AND (
-                              (CAST(reservation_time AS CHAR) <= ? AND CAST(ADDTIME(reservation_time, '02:00:00') AS CHAR) > ?)
-                              OR (CAST(reservation_time AS CHAR) >= ? AND CAST(reservation_time AS CHAR) < CAST(ADDTIME(?, '02:00:00') AS CHAR))
-                          )
-                    ");
-                    $stmt->execute([$data['resource_id'], $data['check_in_date'], 
-                                   $data['reservation_time'], $data['reservation_time'],
-                                   $data['reservation_time'], $data['reservation_time']]);
-                    $result = $stmt->fetch();
-                    
-                    if ($result['conflicts'] > 0) {
-                        echo json_encode(['success' => false, 'message' => 'La mesa no está disponible para el horario seleccionado.']);
-                        exit;
-                    }
-                } elseif ($data['resource_type'] === 'amenity' && !empty($data['reservation_time'])) {
-                    // Check amenity availability (blocked for 2 hours)
-                    $stmt = $this->db->prepare("
-                        SELECT COUNT(*) as conflicts
-                        FROM amenity_reservations
-                        WHERE amenity_id = ?
-                          AND status IN ('confirmed', 'in_use', 'pending')
-                          AND reservation_date = ?
-                          AND (
-                              (CAST(reservation_time AS CHAR) <= ? AND CAST(ADDTIME(reservation_time, '02:00:00') AS CHAR) > ?)
-                              OR (CAST(reservation_time AS CHAR) >= ? AND CAST(reservation_time AS CHAR) < CAST(ADDTIME(?, '02:00:00') AS CHAR))
-                          )
-                    ");
-                    $stmt->execute([$data['resource_id'], $data['check_in_date'],
-                                   $data['reservation_time'], $data['reservation_time'],
-                                   $data['reservation_time'], $data['reservation_time']]);
-                    $result = $stmt->fetch();
-                    
-                    if ($result['conflicts'] > 0) {
-                        echo json_encode(['success' => false, 'message' => 'La amenidad no está disponible para el horario seleccionado.']);
-                        exit;
+                    if (!$allowAmenityOverlap) {
+                        // Check amenity availability based on its configuration
+                        $blockDuration = $amenity['block_duration_hours'] ?? 2.00;
+                        $maxReservations = $amenity['max_reservations'] ?? 1;
+                        
+                        $stmt = $this->db->prepare("
+                            SELECT COUNT(*) as conflicts
+                            FROM amenity_reservations
+                            WHERE amenity_id = ?
+                              AND status IN ('confirmed', 'in_use', 'pending')
+                              AND reservation_date = ?
+                              AND (
+                                  (CAST(reservation_time AS CHAR) <= ? AND CAST(ADDTIME(reservation_time, ?) AS CHAR) > ?)
+                                  OR (CAST(reservation_time AS CHAR) >= ? AND CAST(reservation_time AS CHAR) < CAST(ADDTIME(?, ?) AS CHAR))
+                              )
+                        ");
+                        $blockDurationTime = sprintf('%02d:%02d:00', floor($blockDuration), ($blockDuration - floor($blockDuration)) * 60);
+                        $stmt->execute([
+                            $data['resource_id'], 
+                            $data['check_in_date'],
+                            $data['reservation_time'], $blockDurationTime, $data['reservation_time'],
+                            $data['reservation_time'], $data['reservation_time'], $blockDurationTime
+                        ]);
+                        $result = $stmt->fetch();
+                        
+                        if ($result['conflicts'] >= $maxReservations) {
+                            echo json_encode(['success' => false, 'message' => 'La amenidad ha alcanzado su capacidad máxima para el horario seleccionado.']);
+                            exit;
+                        }
                     }
                 }
             }

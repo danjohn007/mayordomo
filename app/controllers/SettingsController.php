@@ -65,9 +65,13 @@ class SettingsController extends BaseController {
         try {
             $this->db->beginTransaction();
             
-            // Save allow_reservation_overlap setting
-            $allowOverlap = isset($_POST['allow_reservation_overlap']) ? 1 : 0;
-            $this->saveSetting($hotelId, 'allow_reservation_overlap', $allowOverlap, 'boolean', 'reservations');
+            // Save allow_table_overlap setting
+            $allowTableOverlap = isset($_POST['allow_table_overlap']) ? 1 : 0;
+            $this->saveSetting($hotelId, 'allow_table_overlap', $allowTableOverlap, 'boolean', 'reservations');
+            
+            // Save allow_room_overlap setting
+            $allowRoomOverlap = isset($_POST['allow_room_overlap']) ? 1 : 0;
+            $this->saveSetting($hotelId, 'allow_room_overlap', $allowRoomOverlap, 'boolean', 'reservations');
             
             $this->db->commit();
             

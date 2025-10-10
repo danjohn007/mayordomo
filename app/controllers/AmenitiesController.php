@@ -37,6 +37,8 @@ class AmenitiesController extends BaseController {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') redirect('amenities');
         
         $user = currentUser();
+        $allowOverlap = isset($_POST['allow_overlap']) ? 1 : 0;
+        
         $data = [
             'hotel_id' => $user['hotel_id'],
             'name' => sanitize($_POST['name'] ?? ''),
@@ -46,7 +48,10 @@ class AmenitiesController extends BaseController {
             'opening_time' => sanitize($_POST['opening_time'] ?? '') ?: null,
             'closing_time' => sanitize($_POST['closing_time'] ?? '') ?: null,
             'description' => sanitize($_POST['description'] ?? ''),
-            'is_available' => isset($_POST['is_available']) ? 1 : 0
+            'is_available' => isset($_POST['is_available']) ? 1 : 0,
+            'allow_overlap' => $allowOverlap,
+            'max_reservations' => $allowOverlap ? null : (intval($_POST['max_reservations'] ?? 1) ?: 1),
+            'block_duration_hours' => floatval($_POST['block_duration_hours'] ?? 2.00)
         ];
         
         $model = $this->model('Amenity');
@@ -106,6 +111,8 @@ class AmenitiesController extends BaseController {
         $this->requireRole(['admin', 'manager']);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') redirect('amenities');
         
+        $allowOverlap = isset($_POST['allow_overlap']) ? 1 : 0;
+        
         $data = [
             'name' => sanitize($_POST['name'] ?? ''),
             'category' => sanitize($_POST['category'] ?? ''),
@@ -114,7 +121,10 @@ class AmenitiesController extends BaseController {
             'opening_time' => sanitize($_POST['opening_time'] ?? '') ?: null,
             'closing_time' => sanitize($_POST['closing_time'] ?? '') ?: null,
             'description' => sanitize($_POST['description'] ?? ''),
-            'is_available' => isset($_POST['is_available']) ? 1 : 0
+            'is_available' => isset($_POST['is_available']) ? 1 : 0,
+            'allow_overlap' => $allowOverlap,
+            'max_reservations' => $allowOverlap ? null : (intval($_POST['max_reservations'] ?? 1) ?: 1),
+            'block_duration_hours' => floatval($_POST['block_duration_hours'] ?? 2.00)
         ];
         
         $model = $this->model('Amenity');
