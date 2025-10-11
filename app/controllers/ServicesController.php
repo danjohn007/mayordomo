@@ -34,9 +34,21 @@ class ServicesController extends BaseController {
         $serviceTypeCatalogModel = $this->model('ServiceTypeCatalog');
         $serviceTypes = $serviceTypeCatalogModel->getAllActive($user['hotel_id']);
         
+        // Get collaborators for assignment (only for admin/manager/hostess)
+        $collaborators = [];
+        if (hasRole(['admin', 'manager', 'hostess'])) {
+            $userModel = $this->model('User');
+            $collaborators = $userModel->getAll([
+                'hotel_id' => $user['hotel_id'],
+                'role' => 'collaborator',
+                'is_active' => 1
+            ]);
+        }
+        
         $this->view('services/create', [
             'title' => 'Nueva Solicitud',
-            'serviceTypes' => $serviceTypes
+            'serviceTypes' => $serviceTypes,
+            'collaborators' => $collaborators
         ]);
     }
     
@@ -45,10 +57,11 @@ class ServicesController extends BaseController {
         
         $user = currentUser();
         
-        // Auto-assign to current user if they are admin, manager, or hostess
+        // Get assigned_to from form if provided by admin/manager/hostess, otherwise null
         $assignedTo = null;
         if (hasRole(['admin', 'manager', 'hostess'])) {
-            $assignedTo = $user['id'];
+            // Use the assigned_to from the form if provided
+            $assignedTo = !empty($_POST['assigned_to']) ? intval($_POST['assigned_to']) : null;
         }
         
         $data = [
