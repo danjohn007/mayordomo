@@ -116,10 +116,19 @@ class ServicesController extends BaseController {
         $serviceTypeCatalogModel = $this->model('ServiceTypeCatalog');
         $serviceTypes = $serviceTypeCatalogModel->getAllActive($user['hotel_id']);
         
+        // Get collaborators for assignment
+        $userModel = $this->model('User');
+        $collaborators = $userModel->getAll([
+            'hotel_id' => $user['hotel_id'],
+            'role' => 'collaborator',
+            'is_active' => 1
+        ]);
+        
         $this->view('services/edit', [
             'title' => 'Editar Solicitud',
             'service' => $service,
-            'serviceTypes' => $serviceTypes
+            'serviceTypes' => $serviceTypes,
+            'collaborators' => $collaborators
         ]);
     }
     
@@ -128,12 +137,10 @@ class ServicesController extends BaseController {
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') redirect('services');
         
-        // Get current service to preserve assigned_to if not changed
         $model = $this->model('ServiceRequest');
-        $currentService = $model->findById($id);
         
         $data = [
-            'assigned_to' => $currentService['assigned_to'] ?? null,
+            'assigned_to' => !empty($_POST['assigned_to']) ? intval($_POST['assigned_to']) : null,
             'service_type_id' => sanitize($_POST['service_type_id'] ?? null),
             'title' => sanitize($_POST['title'] ?? ''),
             'description' => sanitize($_POST['description'] ?? ''),

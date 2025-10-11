@@ -56,9 +56,15 @@ try {
     
     $resources = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    // Ensure resources is always an array
+    if ($resources === false) {
+        $resources = [];
+    }
+    
     echo json_encode([
         'success' => true,
-        'resources' => $resources
+        'resources' => $resources,
+        'count' => count($resources)
     ]);
 } catch (Exception $e) {
     echo json_encode([

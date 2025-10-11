@@ -78,7 +78,17 @@
                                         <span class="text-muted">Sin tipo</span>
                                     <?php endif; ?>
                                 </td>
-                                <td><?= e($req['title']) ?: '-' ?></td>
+                                <td>
+                                    <?php if (!empty($req['title'])): ?>
+                                        <strong><?= e($req['title']) ?></strong>
+                                    <?php endif; ?>
+                                    <?php if (!empty($req['description'])): ?>
+                                        <br><small class="text-muted"><?= e(substr($req['description'], 0, 100)) ?><?= strlen($req['description']) > 100 ? '...' : '' ?></small>
+                                    <?php endif; ?>
+                                    <?php if (empty($req['title']) && empty($req['description'])): ?>
+                                        <span class="text-muted">-</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?= e($req['guest_first_name']) ?> <?= e($req['guest_last_name']) ?></td>
                                 <td><?= e($req['room_number']) ?: '-' ?></td>
                                 <td><?= getPriorityBadge($req['priority']) ?></td>
