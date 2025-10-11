@@ -41,6 +41,21 @@
                         </div>
                     </div>
                     
+                    <?php if (!empty($collaborators) && hasRole(['admin', 'manager', 'hostess'])): ?>
+                    <div class="mb-3">
+                        <label for="assigned_to" class="form-label">Asignar a Colaborador</label>
+                        <select class="form-select" id="assigned_to" name="assigned_to">
+                            <option value="">Sin asignar</option>
+                            <?php foreach ($collaborators as $collaborator): ?>
+                                <option value="<?= $collaborator['id'] ?>">
+                                    <?= e($collaborator['first_name'] . ' ' . $collaborator['last_name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <small class="text-muted">Seleccione un colaborador para asignar esta solicitud</small>
+                    </div>
+                    <?php endif; ?>
+                    
                     <div class="mb-3">
                         <label for="description" class="form-label">Descripción</label>
                         <textarea class="form-control" id="description" name="description" rows="4"></textarea>

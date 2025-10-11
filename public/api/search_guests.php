@@ -19,7 +19,14 @@ if (!isset($_SESSION['user'])) {
 $user = $_SESSION['user'];
 $query = $_GET['q'] ?? '';
 
-if (strlen($query) < 2) {
+// Allow shorter search for phone numbers (at least 3 digits for phone search)
+$minLength = 2;
+if (preg_match('/^\d+$/', $query)) {
+    // If only digits, allow searching with at least 3 characters
+    $minLength = 3;
+}
+
+if (strlen($query) < $minLength) {
     echo json_encode(['success' => false, 'message' => 'Query muy corto']);
     exit;
 }

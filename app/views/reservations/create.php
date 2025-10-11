@@ -55,7 +55,7 @@
                     <div id="existing_guest_section">
                         <div class="mb-3">
                             <label for="guest_search" class="form-label">Buscar Huésped</label>
-                            <input type="text" class="form-control" id="guest_search" placeholder="Buscar por nombre, email o teléfono...">
+                            <input type="text" class="form-control" id="guest_search" placeholder="Buscar por nombre, email o teléfono (10 dígitos)...">
                         </div>
                         <div id="guest_results" class="list-group mb-3" style="display: none;"></div>
                         <input type="hidden" id="guest_id" name="guest_id">
@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 resourceSelect.innerHTML = '<option value="">Seleccione un recurso...</option>';
-                if (data.success && data.resources) {
+                if (data.success && data.resources && data.resources.length > 0) {
                     data.resources.forEach(resource => {
                         const option = document.createElement('option');
                         option.value = resource.id;
@@ -232,6 +232,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                         resourceSelect.appendChild(option);
                     });
+                } else if (data.success && data.resources && data.resources.length === 0) {
+                    // No resources available
+                    let message = 'No hay recursos disponibles';
+                    if (type === 'room') message = 'No hay habitaciones disponibles';
+                    else if (type === 'table') message = 'No hay mesas disponibles';
+                    else if (type === 'amenity') message = 'No hay amenidades disponibles';
+                    resourceSelect.innerHTML = `<option value="">${message}</option>`;
+                } else {
+                    // API returned error
+                    resourceSelect.innerHTML = '<option value="">Error al cargar recursos</option>';
                 }
             })
             .catch(error => {
