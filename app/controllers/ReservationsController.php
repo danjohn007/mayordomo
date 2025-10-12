@@ -182,23 +182,95 @@ class ReservationsController extends BaseController {
                     throw new Exception('Las fechas de check-in y check-out son requeridas');
                 }
                 
-                $stmt = $this->db->prepare("
-                    INSERT INTO room_reservations 
-                    (hotel_id, room_id, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, total_price, status, notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
-                ");
-                $stmt->execute([
-                    $currentUser['hotel_id'],
-                    $resourceId,
-                    $guestId,
-                    $guestName,
-                    $guestEmail,
-                    $guestPhone,
-                    $checkIn,
-                    $checkOut,
-                    $status,
-                    $notes
-                ]);
+                // Get room price
+                $roomStmt = $this->db->prepare("SELECT price FROM rooms WHERE id = ?");
+                $roomStmt->execute([$resourceId]);
+                $room = $roomStmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$room) {
+                    throw new Exception('Habitación no encontrada');
+                }
+                
+                $roomPrice = floatval($room['price']);
+                $discountCodeId = intval($_POST['discount_code_id'] ?? 0);
+                $discountAmount = floatval($_POST['discount_amount'] ?? 0);
+                $originalPrice = floatval($_POST['original_price'] ?? $roomPrice);
+                
+                // Calculate final price
+                $finalPrice = $roomPrice - $discountAmount;
+                if ($finalPrice < 0) {
+                    $finalPrice = 0;
+                }
+                
+                // Insert room reservation with discount information
+                if ($discountCodeId > 0) {
+                    $stmt = $this->db->prepare("
+                        INSERT INTO room_reservations 
+                        (hotel_id, room_id, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, 
+                         total_price, discount_code_id, discount_amount, original_price, status, notes)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ");
+                    $stmt->execute([
+                        $currentUser['hotel_id'],
+                        $resourceId,
+                        $guestId,
+                        $guestName,
+                        $guestEmail,
+                        $guestPhone,
+                        $checkIn,
+                        $checkOut,
+                        $finalPrice,
+                        $discountCodeId,
+                        $discountAmount,
+                        $originalPrice,
+                        $status,
+                        $notes
+                    ]);
+                    
+                    $reservationId = $this->db->lastInsertId();
+                    
+                    // Record discount code usage
+                    $usageStmt = $this->db->prepare("
+                        INSERT INTO discount_code_usages 
+                        (discount_code_id, reservation_id, reservation_type, discount_amount, original_price, final_price)
+                        VALUES (?, ?, 'room', ?, ?, ?)
+                    ");
+                    $usageStmt->execute([
+                        $discountCodeId,
+                        $reservationId,
+                        $discountAmount,
+                        $originalPrice,
+                        $finalPrice
+                    ]);
+                    
+                    // Update discount code times_used counter
+                    $updateStmt = $this->db->prepare("
+                        UPDATE discount_codes 
+                        SET times_used = times_used + 1 
+                        WHERE id = ?
+                    ");
+                    $updateStmt->execute([$discountCodeId]);
+                } else {
+                    // No discount code applied
+                    $stmt = $this->db->prepare("
+                        INSERT INTO room_reservations 
+                        (hotel_id, room_id, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, total_price, status, notes)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ");
+                    $stmt->execute([
+                        $currentUser['hotel_id'],
+                        $resourceId,
+                        $guestId,
+                        $guestName,
+                        $guestEmail,
+                        $guestPhone,
+                        $checkIn,
+                        $checkOut,
+                        $roomPrice,
+                        $status,
+                        $notes
+                    ]);
+                }
             } elseif ($type === 'table') {
                 $reservationDate = sanitize($_POST['reservation_date'] ?? '');
                 $reservationTime = sanitize($_POST['reservation_time'] ?? '');
