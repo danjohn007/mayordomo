@@ -98,6 +98,39 @@
                                 <input type="date" class="form-control" id="check_out" name="check_out">
                             </div>
                         </div>
+                        
+                        <!-- Código de Descuento -->
+                        <div class="mb-3">
+                            <label for="discount_code" class="form-label">Código de Descuento (Opcional)</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="discount_code" name="discount_code" placeholder="Ingrese código promocional">
+                                <button type="button" class="btn btn-outline-primary" id="apply_discount_btn">
+                                    <i class="bi bi-check-circle"></i> Aplicar
+                                </button>
+                            </div>
+                            <small class="form-text" id="discount_feedback"></small>
+                            <input type="hidden" id="discount_code_id" name="discount_code_id">
+                            <input type="hidden" id="discount_amount" name="discount_amount" value="0">
+                            <input type="hidden" id="original_price" name="original_price">
+                        </div>
+                        
+                        <!-- Resumen de Precio -->
+                        <div id="price_summary" class="alert alert-info" style="display: none;">
+                            <h6 class="mb-2">Resumen de Precio</h6>
+                            <div class="d-flex justify-content-between">
+                                <span>Precio original:</span>
+                                <span id="display_original_price">$0.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between text-success">
+                                <span>Descuento:</span>
+                                <span id="display_discount">-$0.00</span>
+                            </div>
+                            <hr class="my-2">
+                            <div class="d-flex justify-content-between fw-bold">
+                                <span>Total a pagar:</span>
+                                <span id="display_final_price">$0.00</span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Para Mesas y Amenidades -->
@@ -225,35 +258,40 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 console.log('API Response:', data); // Debug logging
                 resourceSelect.innerHTML = '<option value="">Seleccione un recurso...</option>';
-                if (data.success && data.resources && data.resources.length > 0) {
-                    data.resources.forEach(resource => {
-                        const option = document.createElement('option');
-                        option.value = resource.id;
-                        if (type === 'room') {
-                            option.textContent = `Habitación ${resource.room_number} - ${resource.type} ($${resource.price})`;
-                        } else if (type === 'table') {
-                            option.textContent = `Mesa ${resource.table_number} - Capacidad: ${resource.capacity}`;
-                        } else if (type === 'amenity') {
-                            option.textContent = `${resource.name} - ${resource.category}`;
-                        }
-                        resourceSelect.appendChild(option);
-                    });
-                } else if (data.success && data.resources && data.resources.length === 0) {
-                    // No resources available
-                    let message = 'No hay recursos disponibles';
-                    if (type === 'room') message = 'No hay habitaciones disponibles';
-                    else if (type === 'table') message = 'No hay mesas disponibles';
-                    else if (type === 'amenity') message = 'No hay amenidades disponibles';
-                    resourceSelect.innerHTML = `<option value="">${message}</option>`;
+                
+                // Check if API call was successful
+                if (data.success) {
+                    // Check if there are resources available
+                    if (data.resources && data.resources.length > 0) {
+                        data.resources.forEach(resource => {
+                            const option = document.createElement('option');
+                            option.value = resource.id;
+                            if (type === 'room') {
+                                option.textContent = `Habitación ${resource.room_number} - ${resource.type} ($${resource.price})`;
+                            } else if (type === 'table') {
+                                option.textContent = `Mesa ${resource.table_number} - Capacidad: ${resource.capacity}`;
+                            } else if (type === 'amenity') {
+                                option.textContent = `${resource.name} - ${resource.category}`;
+                            }
+                            resourceSelect.appendChild(option);
+                        });
+                    } else {
+                        // No resources available - show specific message
+                        let message = 'No hay recursos disponibles';
+                        if (type === 'room') message = 'No hay habitaciones disponibles';
+                        else if (type === 'table') message = 'No hay mesas disponibles';
+                        else if (type === 'amenity') message = 'No hay amenidades disponibles';
+                        resourceSelect.innerHTML = `<option value="">${message}</option>`;
+                    }
                 } else {
-                    // API returned error
+                    // API returned error - show error message
                     console.error('API Error:', data.message || 'Unknown error');
-                    resourceSelect.innerHTML = '<option value="">Error al cargar recursos</option>';
+                    resourceSelect.innerHTML = `<option value="">Error: ${data.message || 'Error al cargar recursos'}</option>`;
                 }
             })
             .catch(error => {
                 console.error('Error loading resources:', error);
-                resourceSelect.innerHTML = '<option value="">Error al cargar recursos</option>';
+                resourceSelect.innerHTML = '<option value="">Error de conexión al cargar recursos</option>';
             });
     }
 
@@ -383,6 +421,130 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
     
+    // Handle discount code validation
+    const applyDiscountBtn = document.getElementById('apply_discount_btn');
+    const discountCodeInput = document.getElementById('discount_code');
+    const discountFeedback = document.getElementById('discount_feedback');
+    const discountCodeIdInput = document.getElementById('discount_code_id');
+    const discountAmountInput = document.getElementById('discount_amount');
+    const originalPriceInput = document.getElementById('original_price');
+    const priceSummary = document.getElementById('price_summary');
+    
+    if (applyDiscountBtn) {
+        applyDiscountBtn.addEventListener('click', function() {
+            const code = discountCodeInput.value.trim();
+            const resourceId = resourceSelect.value;
+            
+            if (!code) {
+                showDiscountFeedback('Por favor ingrese un código de descuento', 'danger');
+                return;
+            }
+            
+            if (!resourceId) {
+                showDiscountFeedback('Por favor seleccione una habitación primero', 'warning');
+                return;
+            }
+            
+            // Get room price from selected option
+            const selectedOption = resourceSelect.options[resourceSelect.selectedIndex];
+            const optionText = selectedOption.textContent;
+            const priceMatch = optionText.match(/\$(\d+(?:\.\d{2})?)/);
+            
+            if (!priceMatch) {
+                showDiscountFeedback('No se pudo obtener el precio de la habitación', 'danger');
+                return;
+            }
+            
+            const roomPrice = parseFloat(priceMatch[1]);
+            
+            // Show loading state
+            applyDiscountBtn.disabled = true;
+            applyDiscountBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Validando...';
+            discountFeedback.textContent = '';
+            
+            // Validate discount code via API
+            const formData = new FormData();
+            formData.append('code', code);
+            formData.append('room_price', roomPrice);
+            
+            fetch('<?= BASE_URL ?>/api/validate_discount_code.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Discount is valid
+                    const discount = data.discount;
+                    
+                    // Store discount information in hidden fields
+                    discountCodeIdInput.value = discount.id;
+                    discountAmountInput.value = discount.discount_amount;
+                    originalPriceInput.value = discount.original_price;
+                    
+                    // Show success feedback
+                    let feedbackMsg = `✓ Código válido: `;
+                    if (discount.type === 'percentage') {
+                        feedbackMsg += `${discount.amount}% de descuento`;
+                    } else {
+                        feedbackMsg += `$${discount.amount} de descuento`;
+                    }
+                    showDiscountFeedback(feedbackMsg, 'success');
+                    
+                    // Show price summary
+                    document.getElementById('display_original_price').textContent = `$${discount.original_price.toFixed(2)}`;
+                    document.getElementById('display_discount').textContent = `-$${discount.discount_amount.toFixed(2)}`;
+                    document.getElementById('display_final_price').textContent = `$${discount.final_price.toFixed(2)}`;
+                    priceSummary.style.display = 'block';
+                    
+                    // Disable the input and button after successful application
+                    discountCodeInput.disabled = true;
+                    applyDiscountBtn.disabled = true;
+                    applyDiscountBtn.innerHTML = '<i class="bi bi-check-circle"></i> Aplicado';
+                } else {
+                    // Discount is invalid
+                    showDiscountFeedback(data.message, 'danger');
+                    clearDiscountData();
+                }
+            })
+            .catch(error => {
+                console.error('Error validating discount code:', error);
+                showDiscountFeedback('Error de conexión al validar código', 'danger');
+                clearDiscountData();
+            })
+            .finally(() => {
+                if (!discountCodeInput.disabled) {
+                    applyDiscountBtn.disabled = false;
+                    applyDiscountBtn.innerHTML = '<i class="bi bi-check-circle"></i> Aplicar';
+                }
+            });
+        });
+    }
+    
+    function showDiscountFeedback(message, type) {
+        discountFeedback.textContent = message;
+        discountFeedback.className = `form-text text-${type}`;
+    }
+    
+    function clearDiscountData() {
+        discountCodeIdInput.value = '';
+        discountAmountInput.value = '0';
+        originalPriceInput.value = '';
+        priceSummary.style.display = 'none';
+    }
+    
+    // Reset discount when room changes
+    resourceSelect.addEventListener('change', function() {
+        if (discountCodeInput) {
+            discountCodeInput.value = '';
+            discountCodeInput.disabled = false;
+            applyDiscountBtn.disabled = false;
+            applyDiscountBtn.innerHTML = '<i class="bi bi-check-circle"></i> Aplicar';
+            discountFeedback.textContent = '';
+            clearDiscountData();
+        }
+    });
+
     // Form validation before submit
     document.getElementById('reservationForm').addEventListener('submit', function(e) {
         const guestType = document.querySelector('input[name="guest_type"]:checked').value;
