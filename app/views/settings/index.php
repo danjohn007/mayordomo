@@ -78,6 +78,25 @@
                     </div>
                 </div>
 
+                <!-- Códigos de Descuento -->
+                <div class="card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="bi bi-tag"></i> Códigos de Descuento</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Gestiona los códigos de descuento para reservaciones de habitaciones.</p>
+                        
+                        <a href="<?= BASE_URL ?>/discount-codes" class="btn btn-warning btn-sm mb-3">
+                            <i class="bi bi-arrow-right-circle"></i> Administrar Códigos de Descuento
+                        </a>
+                        
+                        <div class="alert alert-info mb-0">
+                            <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Información:</h6>
+                            <p class="mb-0">Los códigos de descuento se pueden aplicar al momento de crear una nueva reservación de habitación. Puedes crear códigos de descuento porcentuales o de monto fijo, con fechas de validez y límites de uso.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Catálogo de Tipos de Servicio -->
                 <div class="card mb-4">
                     <div class="card-header bg-success text-white">

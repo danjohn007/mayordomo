@@ -61,6 +61,11 @@
                                 <input type="email" class="form-control" id="guest_email" name="guest_email">
                             </div>
                         </div>
+                        <div class="mb-3">
+                            <label for="guest_birthday" class="form-label">Fecha de Cumpleaños (Opcional)</label>
+                            <input type="date" class="form-control" id="guest_birthday" name="guest_birthday">
+                            <small class="text-muted">Esta información ayuda a personalizar la experiencia del huésped</small>
+                        </div>
                     </div>
 
                     <hr>
@@ -77,13 +82,22 @@
                         </select>
                     </div>
 
-                    <!-- Recurso -->
-                    <div class="mb-4" id="resource_section" style="display: none;">
+                    <!-- Recurso - Single select for tables and amenities -->
+                    <div class="mb-4" id="resource_section_single" style="display: none;">
                         <label for="resource_id" class="form-label"><strong>Recurso *</strong></label>
                         <select class="form-select" id="resource_id" name="resource_id" required>
                             <option value="">Seleccione un recurso...</option>
                         </select>
                         <small class="text-muted" id="resource_help"></small>
+                    </div>
+
+                    <!-- Recurso - Multiple select for rooms -->
+                    <div class="mb-4" id="resource_section_multiple" style="display: none;">
+                        <label class="form-label"><strong>Habitaciones *</strong></label>
+                        <div id="rooms_checkboxes" class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+                            <p class="text-muted">Cargando habitaciones...</p>
+                        </div>
+                        <small class="text-muted">Seleccione una o más habitaciones para la reservación</small>
                     </div>
 
                     <!-- Para Habitaciones -->
@@ -200,25 +214,29 @@ document.addEventListener('DOMContentLoaded', function() {
     const guestResults = document.getElementById('guest_results');
     const guestIdInput = document.getElementById('guest_id');
 
+    // Get references to both resource sections
+    const resourceSectionSingle = document.getElementById('resource_section_single');
+    const resourceSectionMultiple = document.getElementById('resource_section_multiple');
+    const roomsCheckboxes = document.getElementById('rooms_checkboxes');
+    
     // Handle reservation type change
     reservationType.addEventListener('change', function() {
         const type = this.value;
-        resourceSection.style.display = type ? 'block' : 'none';
         
-        // Reset resource dropdown
-        resourceSelect.innerHTML = '<option value="">Cargando recursos...</option>';
-        
-        // Show/hide appropriate date fields
+        // Show/hide appropriate resource section
         if (type === 'room') {
+            resourceSectionSingle.style.display = 'none';
+            resourceSectionMultiple.style.display = 'block';
             roomDates.style.display = 'block';
             tableAmenityDates.style.display = 'none';
             partySizeSection.style.display = 'none';
-            resourceHelp.textContent = 'Seleccione una habitación disponible';
             document.getElementById('check_in').required = true;
             document.getElementById('check_out').required = true;
             document.getElementById('reservation_date').required = false;
             document.getElementById('reservation_time').required = false;
         } else if (type === 'table') {
+            resourceSectionSingle.style.display = 'block';
+            resourceSectionMultiple.style.display = 'none';
             roomDates.style.display = 'none';
             tableAmenityDates.style.display = 'block';
             partySizeSection.style.display = 'block';
@@ -228,7 +246,10 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('reservation_date').required = true;
             document.getElementById('reservation_time').required = true;
             document.getElementById('party_size').required = true;
+            resourceSelect.innerHTML = '<option value="">Cargando recursos...</option>';
         } else if (type === 'amenity') {
+            resourceSectionSingle.style.display = 'block';
+            resourceSectionMultiple.style.display = 'none';
             roomDates.style.display = 'none';
             tableAmenityDates.style.display = 'block';
             partySizeSection.style.display = 'block';
@@ -238,6 +259,10 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('reservation_date').required = true;
             document.getElementById('reservation_time').required = true;
             document.getElementById('party_size').required = true;
+            resourceSelect.innerHTML = '<option value="">Cargando recursos...</option>';
+        } else {
+            resourceSectionSingle.style.display = 'none';
+            resourceSectionMultiple.style.display = 'none';
         }
         
         // Load resources via AJAX
@@ -257,42 +282,104 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(data => {
                 console.log('API Response:', data); // Debug logging
-                resourceSelect.innerHTML = '<option value="">Seleccione un recurso...</option>';
                 
                 // Check if API call was successful
                 if (data.success) {
                     // Check if there are resources available
                     if (data.resources && data.resources.length > 0) {
-                        data.resources.forEach(resource => {
-                            const option = document.createElement('option');
-                            option.value = resource.id;
-                            if (type === 'room') {
-                                option.textContent = `Habitación ${resource.room_number} - ${resource.type} ($${resource.price})`;
-                            } else if (type === 'table') {
-                                option.textContent = `Mesa ${resource.table_number} - Capacidad: ${resource.capacity}`;
-                            } else if (type === 'amenity') {
-                                option.textContent = `${resource.name} - ${resource.category}`;
-                            }
-                            resourceSelect.appendChild(option);
-                        });
+                        if (type === 'room') {
+                            // Display rooms as checkboxes
+                            let html = '';
+                            data.resources.forEach(resource => {
+                                html += `
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input room-checkbox" type="checkbox" 
+                                               name="room_ids[]" value="${resource.id}" 
+                                               id="room_${resource.id}"
+                                               data-price="${resource.price}">
+                                        <label class="form-check-label" for="room_${resource.id}">
+                                            <strong>Habitación ${resource.room_number}</strong> - ${resource.type} 
+                                            <span class="badge bg-success">$${resource.price}</span>
+                                        </label>
+                                    </div>
+                                `;
+                            });
+                            roomsCheckboxes.innerHTML = html;
+                            
+                            // Add event listeners to checkboxes to update price
+                            document.querySelectorAll('.room-checkbox').forEach(checkbox => {
+                                checkbox.addEventListener('change', updateRoomPrices);
+                            });
+                        } else {
+                            // Display as dropdown for tables and amenities
+                            resourceSelect.innerHTML = '<option value="">Seleccione un recurso...</option>';
+                            data.resources.forEach(resource => {
+                                const option = document.createElement('option');
+                                option.value = resource.id;
+                                if (type === 'table') {
+                                    option.textContent = `Mesa ${resource.table_number} - Capacidad: ${resource.capacity}`;
+                                } else if (type === 'amenity') {
+                                    option.textContent = `${resource.name} - ${resource.category}`;
+                                }
+                                resourceSelect.appendChild(option);
+                            });
+                        }
                     } else {
                         // No resources available - show specific message
                         let message = 'No hay recursos disponibles';
-                        if (type === 'room') message = 'No hay habitaciones disponibles';
-                        else if (type === 'table') message = 'No hay mesas disponibles';
-                        else if (type === 'amenity') message = 'No hay amenidades disponibles';
-                        resourceSelect.innerHTML = `<option value="">${message}</option>`;
+                        if (type === 'room') {
+                            message = 'No hay habitaciones disponibles';
+                            roomsCheckboxes.innerHTML = `<p class="text-muted">${message}</p>`;
+                        } else {
+                            if (type === 'table') message = 'No hay mesas disponibles';
+                            else if (type === 'amenity') message = 'No hay amenidades disponibles';
+                            resourceSelect.innerHTML = `<option value="">${message}</option>`;
+                        }
                     }
                 } else {
                     // API returned error - show error message
                     console.error('API Error:', data.message || 'Unknown error');
-                    resourceSelect.innerHTML = `<option value="">Error: ${data.message || 'Error al cargar recursos'}</option>`;
+                    if (type === 'room') {
+                        roomsCheckboxes.innerHTML = `<p class="text-danger">Error: ${data.message || 'Error al cargar recursos'}</p>`;
+                    } else {
+                        resourceSelect.innerHTML = `<option value="">Error: ${data.message || 'Error al cargar recursos'}</option>`;
+                    }
                 }
             })
             .catch(error => {
                 console.error('Error loading resources:', error);
-                resourceSelect.innerHTML = '<option value="">Error de conexión al cargar recursos</option>';
+                if (type === 'room') {
+                    roomsCheckboxes.innerHTML = '<p class="text-danger">Error de conexión al cargar recursos</p>';
+                } else {
+                    resourceSelect.innerHTML = '<option value="">Error de conexión al cargar recursos</option>';
+                }
             });
+    }
+    
+    // Function to update room prices when checkboxes change
+    function updateRoomPrices() {
+        const checkedBoxes = document.querySelectorAll('.room-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            // No rooms selected, hide price summary
+            if (priceSummary) {
+                priceSummary.style.display = 'none';
+            }
+            return;
+        }
+        
+        // Calculate total price
+        let totalPrice = 0;
+        checkedBoxes.forEach(box => {
+            totalPrice += parseFloat(box.dataset.price);
+        });
+        
+        // Update the original price input (used for discount calculations)
+        if (originalPriceInput) {
+            originalPriceInput.value = totalPrice;
+        }
+        
+        // Note: Discount functionality would need to be updated to work with multiple rooms
+        // For now, we'll just show the total price
     }
 
     // Handle guest type toggle
@@ -548,6 +635,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form validation before submit
     document.getElementById('reservationForm').addEventListener('submit', function(e) {
         const guestType = document.querySelector('input[name="guest_type"]:checked').value;
+        const resType = reservationType.value;
         
         if (guestType === 'existing' && !guestIdInput.value) {
             e.preventDefault();
@@ -560,6 +648,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (phone && !/^\d{10}$/.test(phone)) {
                 e.preventDefault();
                 alert('El teléfono debe tener exactamente 10 dígitos');
+                return false;
+            }
+        }
+        
+        // Validate room selection
+        if (resType === 'room') {
+            const checkedRooms = document.querySelectorAll('.room-checkbox:checked');
+            if (checkedRooms.length === 0) {
+                e.preventDefault();
+                alert('Por favor seleccione al menos una habitación');
                 return false;
             }
         }

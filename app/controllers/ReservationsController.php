@@ -107,6 +107,7 @@ class ReservationsController extends BaseController {
         $currentUser = currentUser();
         $type = sanitize($_POST['reservation_type'] ?? '');
         $resourceId = intval($_POST['resource_id'] ?? 0);
+        $roomIds = isset($_POST['room_ids']) && is_array($_POST['room_ids']) ? array_map('intval', $_POST['room_ids']) : [];
         $status = sanitize($_POST['status'] ?? 'pending');
         $notes = sanitize($_POST['notes'] ?? '');
         $guestType = sanitize($_POST['guest_type'] ?? 'existing');
@@ -173,6 +174,9 @@ class ReservationsController extends BaseController {
             $guestEmail = $guest['email'];
             $guestPhone = $guest['phone'] ?? '';
             
+            // Get birthday field
+            $guestBirthday = !empty($_POST['guest_birthday']) ? sanitize($_POST['guest_birthday']) : null;
+            
             // Create reservation based on type
             if ($type === 'room') {
                 $checkIn = sanitize($_POST['check_in'] ?? '');
@@ -182,94 +186,121 @@ class ReservationsController extends BaseController {
                     throw new Exception('Las fechas de check-in y check-out son requeridas');
                 }
                 
-                // Get room price
-                $roomStmt = $this->db->prepare("SELECT price FROM rooms WHERE id = ?");
-                $roomStmt->execute([$resourceId]);
-                $room = $roomStmt->fetch(PDO::FETCH_ASSOC);
-                
-                if (!$room) {
-                    throw new Exception('Habitación no encontrada');
+                if (empty($roomIds)) {
+                    throw new Exception('Debe seleccionar al menos una habitación');
                 }
                 
-                $roomPrice = floatval($room['price']);
                 $discountCodeId = intval($_POST['discount_code_id'] ?? 0);
                 $discountAmount = floatval($_POST['discount_amount'] ?? 0);
-                $originalPrice = floatval($_POST['original_price'] ?? $roomPrice);
+                $originalPrice = floatval($_POST['original_price'] ?? 0);
                 
-                // Calculate final price
-                $finalPrice = $roomPrice - $discountAmount;
-                if ($finalPrice < 0) {
-                    $finalPrice = 0;
+                $totalRoomsCreated = 0;
+                
+                // Create a reservation for each selected room
+                foreach ($roomIds as $roomId) {
+                    // Get room price
+                    $roomStmt = $this->db->prepare("SELECT price FROM rooms WHERE id = ? AND hotel_id = ?");
+                    $roomStmt->execute([$roomId, $currentUser['hotel_id']]);
+                    $room = $roomStmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    if (!$room) {
+                        continue; // Skip invalid rooms
+                    }
+                    
+                    $roomPrice = floatval($room['price']);
+                    
+                    // For multiple rooms, discount is applied proportionally or only to first room
+                    // Here we'll apply discount proportionally based on room price
+                    $roomDiscountAmount = 0;
+                    $roomOriginalPrice = $roomPrice;
+                    
+                    if ($discountCodeId > 0 && $originalPrice > 0) {
+                        // Calculate proportional discount based on this room's price
+                        $discountPercentage = $discountAmount / $originalPrice;
+                        $roomDiscountAmount = $roomPrice * $discountPercentage;
+                        $roomDiscountAmount = round($roomDiscountAmount, 2);
+                    }
+                    
+                    $finalPrice = $roomPrice - $roomDiscountAmount;
+                    if ($finalPrice < 0) {
+                        $finalPrice = 0;
+                    }
+                    
+                    // Insert room reservation
+                    if ($discountCodeId > 0 && $roomDiscountAmount > 0) {
+                        $stmt = $this->db->prepare("
+                            INSERT INTO room_reservations 
+                            (hotel_id, room_id, guest_id, guest_name, guest_email, guest_phone, guest_birthday, check_in, check_out, 
+                             total_price, discount_code_id, discount_amount, original_price, status, notes)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ");
+                        $stmt->execute([
+                            $currentUser['hotel_id'],
+                            $roomId,
+                            $guestId,
+                            $guestName,
+                            $guestEmail,
+                            $guestPhone,
+                            $guestBirthday,
+                            $checkIn,
+                            $checkOut,
+                            $finalPrice,
+                            $discountCodeId,
+                            $roomDiscountAmount,
+                            $roomOriginalPrice,
+                            $status,
+                            $notes
+                        ]);
+                        
+                        $reservationId = $this->db->lastInsertId();
+                        
+                        // Record discount code usage
+                        $usageStmt = $this->db->prepare("
+                            INSERT INTO discount_code_usages 
+                            (discount_code_id, reservation_id, reservation_type, discount_amount, original_price, final_price)
+                            VALUES (?, ?, 'room', ?, ?, ?)
+                        ");
+                        $usageStmt->execute([
+                            $discountCodeId,
+                            $reservationId,
+                            $roomDiscountAmount,
+                            $roomOriginalPrice,
+                            $finalPrice
+                        ]);
+                    } else {
+                        // No discount code applied
+                        $stmt = $this->db->prepare("
+                            INSERT INTO room_reservations 
+                            (hotel_id, room_id, guest_id, guest_name, guest_email, guest_phone, guest_birthday, check_in, check_out, total_price, status, notes)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ");
+                        $stmt->execute([
+                            $currentUser['hotel_id'],
+                            $roomId,
+                            $guestId,
+                            $guestName,
+                            $guestEmail,
+                            $guestPhone,
+                            $guestBirthday,
+                            $checkIn,
+                            $checkOut,
+                            $roomPrice,
+                            $status,
+                            $notes
+                        ]);
+                    }
+                    
+                    $totalRoomsCreated++;
                 }
                 
-                // Insert room reservation with discount information
-                if ($discountCodeId > 0) {
-                    $stmt = $this->db->prepare("
-                        INSERT INTO room_reservations 
-                        (hotel_id, room_id, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, 
-                         total_price, discount_code_id, discount_amount, original_price, status, notes)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ");
-                    $stmt->execute([
-                        $currentUser['hotel_id'],
-                        $resourceId,
-                        $guestId,
-                        $guestName,
-                        $guestEmail,
-                        $guestPhone,
-                        $checkIn,
-                        $checkOut,
-                        $finalPrice,
-                        $discountCodeId,
-                        $discountAmount,
-                        $originalPrice,
-                        $status,
-                        $notes
-                    ]);
-                    
-                    $reservationId = $this->db->lastInsertId();
-                    
-                    // Record discount code usage
-                    $usageStmt = $this->db->prepare("
-                        INSERT INTO discount_code_usages 
-                        (discount_code_id, reservation_id, reservation_type, discount_amount, original_price, final_price)
-                        VALUES (?, ?, 'room', ?, ?, ?)
-                    ");
-                    $usageStmt->execute([
-                        $discountCodeId,
-                        $reservationId,
-                        $discountAmount,
-                        $originalPrice,
-                        $finalPrice
-                    ]);
-                    
-                    // Update discount code times_used counter
+                // Update discount code times_used counter only once for all rooms
+                if ($discountCodeId > 0 && $totalRoomsCreated > 0) {
                     $updateStmt = $this->db->prepare("
                         UPDATE discount_codes 
                         SET times_used = times_used + 1 
                         WHERE id = ?
                     ");
                     $updateStmt->execute([$discountCodeId]);
-                } else {
-                    // No discount code applied
-                    $stmt = $this->db->prepare("
-                        INSERT INTO room_reservations 
-                        (hotel_id, room_id, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, total_price, status, notes)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ");
-                    $stmt->execute([
-                        $currentUser['hotel_id'],
-                        $resourceId,
-                        $guestId,
-                        $guestName,
-                        $guestEmail,
-                        $guestPhone,
-                        $checkIn,
-                        $checkOut,
-                        $roomPrice,
-                        $status,
-                        $notes
-                    ]);
                 }
             } elseif ($type === 'table') {
                 $reservationDate = sanitize($_POST['reservation_date'] ?? '');
@@ -282,8 +313,8 @@ class ReservationsController extends BaseController {
                 
                 $stmt = $this->db->prepare("
                     INSERT INTO table_reservations 
-                    (hotel_id, table_id, guest_id, guest_name, guest_email, guest_phone, reservation_date, reservation_time, party_size, status, notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (hotel_id, table_id, guest_id, guest_name, guest_email, guest_phone, guest_birthday, reservation_date, reservation_time, party_size, status, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $stmt->execute([
                     $currentUser['hotel_id'],
@@ -292,6 +323,7 @@ class ReservationsController extends BaseController {
                     $guestName,
                     $guestEmail,
                     $guestPhone,
+                    $guestBirthday,
                     $reservationDate,
                     $reservationTime,
                     $partySize,
@@ -339,8 +371,8 @@ class ReservationsController extends BaseController {
                 
                 $stmt = $this->db->prepare("
                     INSERT INTO amenity_reservations 
-                    (hotel_id, amenity_id, user_id, guest_name, guest_email, guest_phone, reservation_date, reservation_time, party_size, status, notes)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    (hotel_id, amenity_id, user_id, guest_name, guest_email, guest_phone, guest_birthday, reservation_date, reservation_time, party_size, status, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $stmt->execute([
                     $currentUser['hotel_id'],
@@ -349,6 +381,7 @@ class ReservationsController extends BaseController {
                     $guestName,
                     $guestEmail,
                     $guestPhone,
+                    $guestBirthday,
                     $reservationDate,
                     $reservationTime,
                     $partySize,
@@ -360,7 +393,13 @@ class ReservationsController extends BaseController {
             }
             
             $this->db->commit();
-            flash('success', 'Reservación creada exitosamente', 'success');
+            
+            // Custom success message for multiple rooms
+            if ($type === 'room' && isset($totalRoomsCreated) && $totalRoomsCreated > 1) {
+                flash('success', "Se crearon exitosamente {$totalRoomsCreated} reservaciones de habitaciones", 'success');
+            } else {
+                flash('success', 'Reservación creada exitosamente', 'success');
+            }
         } catch (Exception $e) {
             $this->db->rollBack();
             flash('error', 'Error al crear la reservación: ' . $e->getMessage(), 'danger');
@@ -459,6 +498,8 @@ class ReservationsController extends BaseController {
         $table = $type === 'room' ? 'room_reservations' : 'table_reservations';
         
         try {
+            $guestBirthday = !empty($_POST['guest_birthday']) ? sanitize($_POST['guest_birthday']) : null;
+            
             if ($type === 'room') {
                 $stmt = $this->db->prepare("
                     UPDATE room_reservations 
@@ -466,6 +507,7 @@ class ReservationsController extends BaseController {
                         guest_name = ?,
                         guest_email = ?,
                         guest_phone = ?,
+                        guest_birthday = ?,
                         notes = ?,
                         check_in = ?,
                         check_out = ?
@@ -476,6 +518,7 @@ class ReservationsController extends BaseController {
                     sanitize($_POST['guest_name']),
                     sanitize($_POST['guest_email']),
                     sanitize($_POST['guest_phone']),
+                    $guestBirthday,
                     sanitize($_POST['notes']),
                     sanitize($_POST['check_in']),
                     sanitize($_POST['check_out']),
@@ -488,6 +531,7 @@ class ReservationsController extends BaseController {
                         guest_name = ?,
                         guest_email = ?,
                         guest_phone = ?,
+                        guest_birthday = ?,
                         notes = ?,
                         reservation_date = ?,
                         reservation_time = ?,
@@ -499,6 +543,7 @@ class ReservationsController extends BaseController {
                     sanitize($_POST['guest_name']),
                     sanitize($_POST['guest_email']),
                     sanitize($_POST['guest_phone']),
+                    $guestBirthday,
                     sanitize($_POST['notes']),
                     sanitize($_POST['reservation_date']),
                     sanitize($_POST['reservation_time']),
