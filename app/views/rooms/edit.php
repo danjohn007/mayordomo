@@ -152,35 +152,6 @@
                     $images = $imageModel ? $imageModel->getByResource('room', $room['id']) : [];
                     ?>
                     
-                    <?php if (!empty($images)): ?>
-                    <div class="mb-3">
-                        <label class="form-label">Imágenes Actuales</label>
-                        <div class="row g-2">
-                            <?php foreach ($images as $img): ?>
-                                <div class="col-md-3">
-                                    <div class="card">
-                                        <img src="<?= BASE_URL ?>/public/<?= e($img['image_path']) ?>" class="card-img-top" alt="Imagen" style="height: 100px; object-fit: cover;">
-                                        <div class="card-body p-2">
-                                            <form method="POST" action="<?= BASE_URL ?>/rooms/setPrimaryImage/<?= $img['id'] ?>" style="display: inline;">
-                                                <?php if ($img['is_primary']): ?>
-                                                    <span class="badge bg-success w-100 mb-1">Principal</span>
-                                                <?php else: ?>
-                                                    <button type="submit" class="btn btn-sm btn-outline-primary w-100 mb-1">
-                                                        <i class="bi bi-star"></i> Hacer Principal
-                                                    </button>
-                                                <?php endif; ?>
-                                            </form>
-                                            <form method="POST" action="<?= BASE_URL ?>/rooms/deleteImage/<?= $img['id'] ?>" style="display: inline;" onsubmit="return confirm('¿Eliminar esta imagen?')">
-                                                <button type="submit" class="btn btn-sm btn-danger w-100"><i class="bi bi-trash"></i> Eliminar</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-                    
                     <div class="mb-3">
                         <label for="images" class="form-label">Agregar Imágenes (opcional)</label>
                         <input type="file" class="form-control" id="images" name="images[]" accept="image/*" multiple>
@@ -196,6 +167,36 @@
                         </a>
                     </div>
                 </form>
+                
+                <?php if (!empty($images)): ?>
+                <hr class="my-4">
+                <div class="mb-3">
+                    <label class="form-label"><strong>Imágenes Actuales</strong></label>
+                    <div class="row g-2">
+                        <?php foreach ($images as $img): ?>
+                            <div class="col-md-3">
+                                <div class="card">
+                                    <img src="<?= BASE_URL ?>/public/<?= e($img['image_path']) ?>" class="card-img-top" alt="Imagen" style="height: 100px; object-fit: cover;">
+                                    <div class="card-body p-2">
+                                        <form method="POST" action="<?= BASE_URL ?>/rooms/setPrimaryImage/<?= $img['id'] ?>">
+                                            <?php if ($img['is_primary']): ?>
+                                                <span class="badge bg-success w-100 mb-1">Principal</span>
+                                            <?php else: ?>
+                                                <button type="submit" class="btn btn-sm btn-outline-primary w-100 mb-1">
+                                                    <i class="bi bi-star"></i> Hacer Principal
+                                                </button>
+                                            <?php endif; ?>
+                                        </form>
+                                        <form method="POST" action="<?= BASE_URL ?>/rooms/deleteImage/<?= $img['id'] ?>" onsubmit="return confirm('¿Eliminar esta imagen?')">
+                                            <button type="submit" class="btn btn-sm btn-danger w-100"><i class="bi bi-trash"></i> Eliminar</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
