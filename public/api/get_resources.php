@@ -32,7 +32,7 @@ try {
         $stmt = $db->prepare("
             SELECT id, room_number, type, capacity, price, status 
             FROM rooms 
-            WHERE hotel_id = ? AND status IN ('available', 'reserved')
+            WHERE hotel_id = ? AND status != 'maintenance'
             ORDER BY room_number
         ");
         $stmt->execute([$hotelId]);
@@ -40,7 +40,7 @@ try {
         $stmt = $db->prepare("
             SELECT id, table_number, capacity, location, status 
             FROM restaurant_tables 
-            WHERE hotel_id = ? AND status IN ('available', 'reserved')
+            WHERE hotel_id = ? AND status != 'blocked'
             ORDER BY table_number
         ");
         $stmt->execute([$hotelId]);
