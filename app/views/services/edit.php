@@ -66,7 +66,7 @@
                                 <?php if (!empty($collaborators)): ?>
                                     <?php foreach ($collaborators as $collab): ?>
                                         <option value="<?= $collab['id'] ?>" <?= ($service['assigned_to'] == $collab['id']) ? 'selected' : '' ?>>
-                                            <?= e($collab['first_name']) ?> <?= e($collab['last_name']) ?>
+                                            <?= e($collab['first_name']) ?> <?= e($collab['last_name']) ?> (<?= ucfirst($collab['role']) ?>)
                                         </option>
                                     <?php endforeach; ?>
                                 <?php endif; ?>

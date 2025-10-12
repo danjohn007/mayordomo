@@ -129,11 +129,10 @@ class ServicesController extends BaseController {
         $serviceTypeCatalogModel = $this->model('ServiceTypeCatalog');
         $serviceTypes = $serviceTypeCatalogModel->getAllActive($user['hotel_id']);
         
-        // Get collaborators for assignment
+        // Get all users (admin and collaborators) for assignment
         $userModel = $this->model('User');
         $collaborators = $userModel->getAll([
             'hotel_id' => $user['hotel_id'],
-            'role' => 'collaborator',
             'is_active' => 1
         ]);
         
