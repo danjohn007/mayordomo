@@ -15,7 +15,13 @@ $url = filter_var($url, FILTER_SANITIZE_URL);
 $url = explode('/', $url);
 
 // Determine controller, method, and parameters
-$controllerName = !empty($url[0]) ? ucfirst($url[0]) . 'Controller' : 'DashboardController';
+// Convert hyphenated URLs to PascalCase for controller names
+$controllerPart = !empty($url[0]) ? $url[0] : 'dashboard';
+$controllerPart = str_replace('-', ' ', $controllerPart);
+$controllerPart = ucwords($controllerPart);
+$controllerPart = str_replace(' ', '', $controllerPart);
+$controllerName = $controllerPart . 'Controller';
+
 $method = isset($url[1]) && !empty($url[1]) ? $url[1] : 'index';
 $params = array_slice($url, 2);
 
