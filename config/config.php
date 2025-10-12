@@ -38,8 +38,8 @@ define('APP_VERSION', '1.0.0');
 
 // Database configuration
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'ranchopa_majorbot');
-define('DB_USER', 'ranchopa_majorbot');
+define('DB_NAME', 'ranchopa_sistema');
+define('DB_USER', 'ranchopa_sistema');
 define('DB_PASS', 'Danjohn007!');
 define('DB_CHARSET', 'utf8mb4');
 
