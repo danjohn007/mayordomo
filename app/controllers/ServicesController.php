@@ -129,12 +129,17 @@ class ServicesController extends BaseController {
         $serviceTypeCatalogModel = $this->model('ServiceTypeCatalog');
         $serviceTypes = $serviceTypeCatalogModel->getAllActive($user['hotel_id']);
         
-        // Get all users (admin and collaborators) for assignment
+        // Get all users (admin and collaborators) for assignment, excluding guests
         $userModel = $this->model('User');
-        $collaborators = $userModel->getAll([
+        $allUsers = $userModel->getAll([
             'hotel_id' => $user['hotel_id'],
             'is_active' => 1
         ]);
+        
+        // Filter out guests
+        $collaborators = array_filter($allUsers, function($u) {
+            return $u['role'] !== 'guest';
+        });
         
         $this->view('services/edit', [
             'title' => 'Editar Solicitud',

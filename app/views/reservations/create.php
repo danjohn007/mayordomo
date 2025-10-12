@@ -15,30 +15,8 @@
                 <?php if ($flash = flash('error')) echo '<div class="alert alert-' . $flash['type'] . ' alert-dismissible fade show">' . $flash['message'] . '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>'; ?>
                 
                 <form method="POST" action="<?= BASE_URL ?>/reservations/store" id="reservationForm">
-                    <!-- Tipo de Reservación -->
-                    <div class="mb-4">
-                        <label for="reservation_type" class="form-label"><strong>Tipo de Reservación *</strong></label>
-                        <select class="form-select form-select-lg" id="reservation_type" name="reservation_type" required>
-                            <option value="">Seleccione un tipo...</option>
-                            <option value="room">🚪 Habitación</option>
-                            <option value="table">🍽️ Mesa</option>
-                            <option value="amenity">🏊 Amenidad</option>
-                        </select>
-                    </div>
-
-                    <!-- Recurso -->
-                    <div class="mb-4" id="resource_section" style="display: none;">
-                        <label for="resource_id" class="form-label"><strong>Recurso *</strong></label>
-                        <select class="form-select" id="resource_id" name="resource_id" required>
-                            <option value="">Seleccione un recurso...</option>
-                        </select>
-                        <small class="text-muted" id="resource_help"></small>
-                    </div>
-
-                    <hr>
-
                     <!-- Información del Huésped -->
-                    <h5 class="mb-3">Información del Huésped</h5>
+                    <h5 class="mb-3"><i class="bi bi-person-circle"></i> Información del Huésped</h5>
                     
                     <div class="mb-3">
                         <label class="form-label"><strong>Tipo de Huésped *</strong></label>
@@ -55,7 +33,11 @@
                     <div id="existing_guest_section">
                         <div class="mb-3">
                             <label for="guest_search" class="form-label">Buscar Huésped</label>
-                            <input type="text" class="form-control" id="guest_search" placeholder="Buscar por nombre, email o teléfono (10 dígitos)...">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" id="guest_search" placeholder="Buscar por nombre, email o teléfono (10 dígitos)...">
+                            </div>
+                            <small class="text-muted">Ingrese al menos 2 caracteres para buscar</small>
                         </div>
                         <div id="guest_results" class="list-group mb-3" style="display: none;"></div>
                         <input type="hidden" id="guest_id" name="guest_id">
@@ -83,9 +65,27 @@
 
                     <hr>
 
-                    <!-- Fechas y Detalles -->
-                    <h5 class="mb-3">Detalles de la Reservación</h5>
-                    
+                    <!-- Tipo de Reservación -->
+                    <h5 class="mb-3"><i class="bi bi-calendar-check"></i> Detalles de Reservación</h5>
+                    <div class="mb-4">
+                        <label for="reservation_type" class="form-label"><strong>Tipo de Reservación *</strong></label>
+                        <select class="form-select form-select-lg" id="reservation_type" name="reservation_type" required>
+                            <option value="">Seleccione un tipo...</option>
+                            <option value="room">🚪 Habitación</option>
+                            <option value="table">🍽️ Mesa</option>
+                            <option value="amenity">🏊 Amenidad</option>
+                        </select>
+                    </div>
+
+                    <!-- Recurso -->
+                    <div class="mb-4" id="resource_section" style="display: none;">
+                        <label for="resource_id" class="form-label"><strong>Recurso *</strong></label>
+                        <select class="form-select" id="resource_id" name="resource_id" required>
+                            <option value="">Seleccione un recurso...</option>
+                        </select>
+                        <small class="text-muted" id="resource_help"></small>
+                    </div>
+
                     <!-- Para Habitaciones -->
                     <div id="room_dates" style="display: none;">
                         <div class="row">
@@ -216,8 +216,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load resources based on type
     function loadResources(type) {
         fetch('<?= BASE_URL ?>/api/get_resources.php?type=' + type)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('API Response:', data); // Debug logging
                 resourceSelect.innerHTML = '<option value="">Seleccione un recurso...</option>';
                 if (data.success && data.resources && data.resources.length > 0) {
                     data.resources.forEach(resource => {
@@ -241,6 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     resourceSelect.innerHTML = `<option value="">${message}</option>`;
                 } else {
                     // API returned error
+                    console.error('API Error:', data.message || 'Unknown error');
                     resourceSelect.innerHTML = '<option value="">Error al cargar recursos</option>';
                 }
             })
