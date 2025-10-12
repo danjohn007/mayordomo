@@ -49,11 +49,77 @@
                         </div>
                         
                         <div class="col-md-4 mb-3">
-                            <label for="price" class="form-label">Precio *</label>
+                            <label for="price" class="form-label">Precio Base *</label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
                                 <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" 
                                        value="<?= e($room['price']) ?>" required>
+                            </div>
+                            <small class="text-muted">Precio por defecto para todos los días</small>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <strong>Precios por Día de la Semana</strong>
+                            <small class="text-muted">(Opcional - si no se especifica, se usa el precio base)</small>
+                        </label>
+                        <div class="row g-2">
+                            <div class="col-md-3 col-6">
+                                <label for="price_monday" class="form-label small">Lunes</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="price_monday" name="price_monday" min="0" step="0.01" 
+                                           value="<?= e($room['price_monday'] ?? '') ?>" placeholder="Precio base">
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <label for="price_tuesday" class="form-label small">Martes</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="price_tuesday" name="price_tuesday" min="0" step="0.01" 
+                                           value="<?= e($room['price_tuesday'] ?? '') ?>" placeholder="Precio base">
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <label for="price_wednesday" class="form-label small">Miércoles</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="price_wednesday" name="price_wednesday" min="0" step="0.01" 
+                                           value="<?= e($room['price_wednesday'] ?? '') ?>" placeholder="Precio base">
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <label for="price_thursday" class="form-label small">Jueves</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="price_thursday" name="price_thursday" min="0" step="0.01" 
+                                           value="<?= e($room['price_thursday'] ?? '') ?>" placeholder="Precio base">
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <label for="price_friday" class="form-label small">Viernes</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="price_friday" name="price_friday" min="0" step="0.01" 
+                                           value="<?= e($room['price_friday'] ?? '') ?>" placeholder="Precio base">
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <label for="price_saturday" class="form-label small">Sábado</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="price_saturday" name="price_saturday" min="0" step="0.01" 
+                                           value="<?= e($room['price_saturday'] ?? '') ?>" placeholder="Precio base">
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6">
+                                <label for="price_sunday" class="form-label small">Domingo</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="price_sunday" name="price_sunday" min="0" step="0.01" 
+                                           value="<?= e($room['price_sunday'] ?? '') ?>" placeholder="Precio base">
+                                </div>
                             </div>
                         </div>
                     </div>

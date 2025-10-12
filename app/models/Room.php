@@ -62,8 +62,11 @@ class Room {
      */
     public function create($data) {
         $stmt = $this->db->prepare("
-            INSERT INTO rooms (hotel_id, room_number, type, capacity, price, status, floor, description, amenities) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO rooms (hotel_id, room_number, type, capacity, price, 
+                price_monday, price_tuesday, price_wednesday, price_thursday, 
+                price_friday, price_saturday, price_sunday,
+                status, floor, description, amenities) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         
         return $stmt->execute([
@@ -72,6 +75,13 @@ class Room {
             $data['type'],
             $data['capacity'],
             $data['price'],
+            $data['price_monday'] ?? $data['price'],
+            $data['price_tuesday'] ?? $data['price'],
+            $data['price_wednesday'] ?? $data['price'],
+            $data['price_thursday'] ?? $data['price'],
+            $data['price_friday'] ?? $data['price'],
+            $data['price_saturday'] ?? $data['price'],
+            $data['price_sunday'] ?? $data['price'],
             $data['status'] ?? 'available',
             $data['floor'] ?? null,
             $data['description'] ?? null,
@@ -85,7 +95,10 @@ class Room {
     public function update($id, $data) {
         $stmt = $this->db->prepare("
             UPDATE rooms 
-            SET room_number = ?, type = ?, capacity = ?, price = ?, status = ?, floor = ?, description = ?, amenities = ?
+            SET room_number = ?, type = ?, capacity = ?, price = ?,
+                price_monday = ?, price_tuesday = ?, price_wednesday = ?, price_thursday = ?,
+                price_friday = ?, price_saturday = ?, price_sunday = ?,
+                status = ?, floor = ?, description = ?, amenities = ?
             WHERE id = ?
         ");
         
@@ -94,6 +107,13 @@ class Room {
             $data['type'],
             $data['capacity'],
             $data['price'],
+            $data['price_monday'] ?? $data['price'],
+            $data['price_tuesday'] ?? $data['price'],
+            $data['price_wednesday'] ?? $data['price'],
+            $data['price_thursday'] ?? $data['price'],
+            $data['price_friday'] ?? $data['price'],
+            $data['price_saturday'] ?? $data['price'],
+            $data['price_sunday'] ?? $data['price'],
             $data['status'],
             $data['floor'] ?? null,
             $data['description'] ?? null,
