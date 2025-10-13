@@ -55,12 +55,13 @@ CREATE TABLE IF NOT EXISTS discount_code_usages (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ================================================
--- Agregar campos a room_reservations para descuentos solo si no existen
+-- Agregar columnas y Foreign Key a room_reservations solo si no existen
 -- ================================================
+
 -- discount_code_id
 SET @column_exists = (
     SELECT COUNT(*) FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = 'majorbot_db'
+    WHERE TABLE_SCHEMA = DATABASE()
       AND TABLE_NAME = 'room_reservations'
       AND COLUMN_NAME = 'discount_code_id'
 );
@@ -75,7 +76,7 @@ DEALLOCATE PREPARE stmt;
 -- discount_amount
 SET @column_exists = (
     SELECT COUNT(*) FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = 'majorbot_db'
+    WHERE TABLE_SCHEMA = DATABASE()
       AND TABLE_NAME = 'room_reservations'
       AND COLUMN_NAME = 'discount_amount'
 );
@@ -90,7 +91,7 @@ DEALLOCATE PREPARE stmt;
 -- original_price
 SET @column_exists = (
     SELECT COUNT(*) FROM information_schema.COLUMNS
-    WHERE TABLE_SCHEMA = 'majorbot_db'
+    WHERE TABLE_SCHEMA = DATABASE()
       AND TABLE_NAME = 'room_reservations'
       AND COLUMN_NAME = 'original_price'
 );
@@ -102,13 +103,11 @@ PREPARE stmt FROM @sql;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
--- ================================================
--- Si la columna discount_code_id ya existe, agregar la foreign key si no existe
--- ================================================
+-- Foreign Key para discount_code_id
 SET @fk_exists = (
     SELECT COUNT(*) 
     FROM information_schema.TABLE_CONSTRAINTS 
-    WHERE TABLE_SCHEMA = 'majorbot_db' 
+    WHERE TABLE_SCHEMA = DATABASE()
       AND TABLE_NAME = 'room_reservations' 
       AND CONSTRAINT_NAME = 'fk_room_reservation_discount'
       AND CONSTRAINT_TYPE = 'FOREIGN KEY'

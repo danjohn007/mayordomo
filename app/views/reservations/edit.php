@@ -57,6 +57,13 @@
                             </div>
                             
                             <div class="col-md-6 mb-3">
+                                <label for="guest_birthday" class="form-label">Fecha de Cumpleaños</label>
+                                <input type="date" class="form-control" id="guest_birthday" name="guest_birthday" 
+                                       value="<?= e($reservation['guest_birthday'] ?? '') ?>">
+                            </div>
+                        </div>
+
+                            <div class="col-md-6 mb-3">
                                 <label for="status" class="form-label">Estado *</label>
                                 <select class="form-select" id="status" name="status" required>
                                     <?php if ($type === 'room'): ?>
