@@ -4,14 +4,23 @@
  * Returns available rooms, tables, or amenities based on type
  */
 
+// Prevent any HTML output from errors
+error_reporting(0);
+ini_set('display_errors', 0);
+
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 
+// Set JSON header as early as possible
 header('Content-Type: application/json');
+
+// Ensure no output before JSON
+ob_start();
 
 // Check if user is logged in
 session_start();
 if (!isset($_SESSION['user'])) {
+    ob_clean(); // Clear any buffered output
     echo json_encode(['success' => false, 'message' => 'No autorizado']);
     exit;
 }
@@ -20,6 +29,7 @@ $user = $_SESSION['user'];
 $type = $_GET['type'] ?? '';
 
 if (empty($type) || !in_array($type, ['room', 'table', 'amenity'])) {
+    ob_clean(); // Clear any buffered output
     echo json_encode(['success' => false, 'message' => 'Tipo inválido']);
     exit;
 }
@@ -61,12 +71,14 @@ try {
         $resources = [];
     }
     
+    ob_clean(); // Clear any buffered output
     echo json_encode([
         'success' => true,
         'resources' => $resources,
         'count' => count($resources)
     ]);
 } catch (Exception $e) {
+    ob_clean(); // Clear any buffered output
     echo json_encode([
         'success' => false,
         'message' => 'Error al cargar recursos: ' . $e->getMessage()

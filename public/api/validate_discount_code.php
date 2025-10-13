@@ -4,14 +4,23 @@
  * Validates discount codes for room reservations
  */
 
+// Prevent any HTML output from errors
+error_reporting(0);
+ini_set('display_errors', 0);
+
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 
+// Set JSON header as early as possible
 header('Content-Type: application/json');
+
+// Ensure no output before JSON
+ob_start();
 
 // Check if user is logged in
 session_start();
 if (!isset($_SESSION['user'])) {
+    ob_clean(); // Clear any buffered output
     echo json_encode(['success' => false, 'message' => 'No autorizado']);
     exit;
 }
@@ -22,11 +31,13 @@ $roomPrice = floatval($_POST['room_price'] ?? 0);
 
 // Validate input
 if (empty($code)) {
+    ob_clean(); // Clear any buffered output
     echo json_encode(['success' => false, 'message' => 'Código de descuento requerido']);
     exit;
 }
 
 if ($roomPrice <= 0) {
+    ob_clean(); // Clear any buffered output
     echo json_encode(['success' => false, 'message' => 'Precio de habitación inválido']);
     exit;
 }
@@ -60,6 +71,7 @@ try {
     
     // Check if code exists and is valid
     if (!$discountCode) {
+        ob_clean(); // Clear any buffered output
         echo json_encode([
             'success' => false, 
             'message' => 'Código de descuento inválido o expirado'
@@ -69,6 +81,7 @@ try {
     
     // Check usage limit
     if ($discountCode['usage_limit'] !== null && $discountCode['times_used'] >= $discountCode['usage_limit']) {
+        ob_clean(); // Clear any buffered output
         echo json_encode([
             'success' => false, 
             'message' => 'Este código de descuento ha alcanzado su límite de uso'
@@ -100,6 +113,7 @@ try {
     }
     
     // Return success with discount details
+    ob_clean(); // Clear any buffered output
     echo json_encode([
         'success' => true,
         'message' => 'Código válido aplicado correctamente',
@@ -116,6 +130,7 @@ try {
     ]);
     
 } catch (Exception $e) {
+    ob_clean(); // Clear any buffered output
     echo json_encode([
         'success' => false,
         'message' => 'Error al validar código: ' . $e->getMessage()

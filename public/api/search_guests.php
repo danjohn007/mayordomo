@@ -4,14 +4,23 @@
  * Returns guests matching the search query
  */
 
+// Prevent any HTML output from errors
+error_reporting(0);
+ini_set('display_errors', 0);
+
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 
+// Set JSON header as early as possible
 header('Content-Type: application/json');
+
+// Ensure no output before JSON
+ob_start();
 
 // Check if user is logged in
 session_start();
 if (!isset($_SESSION['user'])) {
+    ob_clean(); // Clear any buffered output
     echo json_encode(['success' => false, 'message' => 'No autorizado']);
     exit;
 }
@@ -27,6 +36,7 @@ if (preg_match('/^\d+$/', $query)) {
 }
 
 if (strlen($query) < $minLength) {
+    ob_clean(); // Clear any buffered output
     echo json_encode(['success' => false, 'message' => 'Query muy corto']);
     exit;
 }
@@ -54,11 +64,13 @@ try {
     
     $guests = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
+    ob_clean(); // Clear any buffered output
     echo json_encode([
         'success' => true,
         'guests' => $guests
     ]);
 } catch (Exception $e) {
+    ob_clean(); // Clear any buffered output
     echo json_encode([
         'success' => false,
         'message' => 'Error al buscar huéspedes: ' . $e->getMessage()
