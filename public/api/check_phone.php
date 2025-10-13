@@ -17,15 +17,22 @@ header('Content-Type: application/json');
 // Ensure no output before JSON
 ob_start();
 
-// Check if user is logged in
-session_start();
-if (!isset($_SESSION['user'])) {
+// Check if user is logged in (using the same logic as helpers.php)
+if (!isset($_SESSION['user_id'])) {
     ob_clean(); // Clear any buffered output
     echo json_encode(['success' => false, 'message' => 'No autorizado']);
     exit;
 }
 
-$user = $_SESSION['user'];
+// Get user data (same format as currentUser() helper function)
+$user = [
+    'id' => $_SESSION['user_id'] ?? null,
+    'email' => $_SESSION['email'] ?? null,
+    'first_name' => $_SESSION['first_name'] ?? null,
+    'last_name' => $_SESSION['last_name'] ?? null,
+    'role' => $_SESSION['role'] ?? null,
+    'hotel_id' => $_SESSION['hotel_id'] ?? null
+];
 $phone = $_GET['phone'] ?? '';
 
 if (empty($phone)) {

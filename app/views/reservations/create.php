@@ -288,70 +288,227 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Check if there are resources available
                     if (data.resources && data.resources.length > 0) {
                         if (type === 'room') {
-                            // Display rooms as checkboxes
+                            // Display rooms as styled cards with checkboxes
                             let html = '';
                             data.resources.forEach(resource => {
+                                const statusBadge = resource.status === 'available' ? 
+                                    '<span class="badge bg-success ms-2">Disponible</span>' : 
+                                    '<span class="badge bg-warning ms-2">Reservada</span>';
+                                    
                                 html += `
-                                    <div class="form-check mb-2">
-                                        <input class="form-check-input room-checkbox" type="checkbox" 
-                                               name="room_ids[]" value="${resource.id}" 
-                                               id="room_${resource.id}"
-                                               data-price="${resource.price}">
-                                        <label class="form-check-label" for="room_${resource.id}">
-                                            <strong>Habitación ${resource.room_number}</strong> - ${resource.type} 
-                                            <span class="badge bg-success">$${resource.price}</span>
-                                        </label>
+                                    <div class="col-md-6 col-lg-4 mb-3">
+                                        <div class="card resource-card h-100" style="cursor: pointer;" data-resource-id="${resource.id}">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <h6 class="card-title mb-0">
+                                                        <i class="bi bi-door-closed text-primary"></i>
+                                                        Habitación ${resource.room_number}
+                                                    </h6>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input room-checkbox" type="checkbox" 
+                                                               name="room_ids[]" value="${resource.id}" 
+                                                               id="room_${resource.id}"
+                                                               data-price="${resource.price}">
+                                                    </div>
+                                                </div>
+                                                <p class="card-text text-muted small mb-2">
+                                                    <i class="bi bi-tag"></i> ${resource.type}
+                                                </p>
+                                                <p class="card-text text-muted small mb-2">
+                                                    <i class="bi bi-people"></i> Capacidad: ${resource.capacity || 'N/A'}
+                                                </p>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <span class="badge bg-primary fs-6">$${parseFloat(resource.price).toFixed(2)}</span>
+                                                    ${statusBadge}
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 `;
                             });
-                            roomsCheckboxes.innerHTML = html;
+                            roomsCheckboxes.innerHTML = `<div class="row">${html}</div>`;
                             
-                            // Add event listeners to checkboxes to update price
+                            // Add event listeners to cards and checkboxes
+                            document.querySelectorAll('.resource-card').forEach(card => {
+                                card.addEventListener('click', function(e) {
+                                    if (e.target.type !== 'checkbox') {
+                                        const checkbox = this.querySelector('.room-checkbox');
+                                        checkbox.checked = !checkbox.checked;
+                                        checkbox.dispatchEvent(new Event('change'));
+                                    }
+                                });
+                            });
+                            
                             document.querySelectorAll('.room-checkbox').forEach(checkbox => {
-                                checkbox.addEventListener('change', updateRoomPrices);
+                                checkbox.addEventListener('change', function() {
+                                    const card = this.closest('.resource-card');
+                                    if (this.checked) {
+                                        card.classList.add('border-primary', 'bg-light');
+                                    } else {
+                                        card.classList.remove('border-primary', 'bg-light');
+                                    }
+                                    updateRoomPrices();
+                                });
                             });
                         } else {
-                            // Display as dropdown for tables and amenities
-                            resourceSelect.innerHTML = '<option value="">Seleccione un recurso...</option>';
+                            // Display tables and amenities as styled cards with radio buttons
+                            let html = '';
                             data.resources.forEach(resource => {
-                                const option = document.createElement('option');
-                                option.value = resource.id;
+                                let cardContent = '';
+                                let icon = '';
+                                let details = '';
+                                
                                 if (type === 'table') {
-                                    option.textContent = `Mesa ${resource.table_number} - Capacidad: ${resource.capacity}`;
+                                    icon = '<i class="bi bi-table text-warning"></i>';
+                                    cardContent = `Mesa ${resource.table_number}`;
+                                    details = `
+                                        <p class="card-text text-muted small mb-2">
+                                            <i class="bi bi-people"></i> Capacidad: ${resource.capacity} personas
+                                        </p>
+                                        <p class="card-text text-muted small mb-2">
+                                            <i class="bi bi-geo-alt"></i> Ubicación: ${resource.location || 'Principal'}
+                                        </p>
+                                    `;
                                 } else if (type === 'amenity') {
-                                    option.textContent = `${resource.name} - ${resource.category}`;
+                                    icon = '<i class="bi bi-star text-info"></i>';
+                                    cardContent = resource.name;
+                                    details = `
+                                        <p class="card-text text-muted small mb-2">
+                                            <i class="bi bi-tag"></i> ${resource.category}
+                                        </p>
+                                        <p class="card-text text-muted small mb-2">
+                                            <i class="bi bi-people"></i> Capacidad: ${resource.capacity || 'N/A'}
+                                        </p>
+                                        ${resource.opening_time && resource.closing_time ? 
+                                            `<p class="card-text text-muted small mb-2">
+                                                <i class="bi bi-clock"></i> ${resource.opening_time} - ${resource.closing_time}
+                                            </p>` : ''}
+                                    `;
                                 }
-                                resourceSelect.appendChild(option);
+                                
+                                const price = resource.price ? `<span class="badge bg-primary fs-6">$${parseFloat(resource.price).toFixed(2)}</span>` : '';
+                                
+                                html += `
+                                    <div class="col-md-6 col-lg-4 mb-3">
+                                        <div class="card resource-card h-100" style="cursor: pointer;" data-resource-id="${resource.id}">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <h6 class="card-title mb-0">
+                                                        ${icon} ${cardContent}
+                                                    </h6>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input resource-radio" type="radio" 
+                                                               name="resource_id" value="${resource.id}" 
+                                                               id="${type}_${resource.id}">
+                                                    </div>
+                                                </div>
+                                                ${details}
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    ${price}
+                                                    <span class="badge bg-success">Disponible</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            
+                            resourceSectionSingle.innerHTML = `
+                                <label class="form-label"><strong>${type === 'table' ? 'Mesas' : 'Amenidades'} *</strong></label>
+                                <div class="row">${html}</div>
+                                <small class="text-muted">Seleccione ${type === 'table' ? 'una mesa' : 'una amenidad'} para la reservación</small>
+                            `;
+                            
+                            // Add event listeners to cards and radio buttons
+                            document.querySelectorAll('.resource-card').forEach(card => {
+                                card.addEventListener('click', function(e) {
+                                    if (e.target.type !== 'radio') {
+                                        const radio = this.querySelector('.resource-radio');
+                                        radio.checked = true;
+                                        radio.dispatchEvent(new Event('change'));
+                                    }
+                                });
+                            });
+                            
+                            document.querySelectorAll('.resource-radio').forEach(radio => {
+                                radio.addEventListener('change', function() {
+                                    // Remove selection from all cards
+                                    document.querySelectorAll('.resource-card').forEach(c => {
+                                        c.classList.remove('border-primary', 'bg-light');
+                                    });
+                                    
+                                    // Add selection to current card
+                                    if (this.checked) {
+                                        const card = this.closest('.resource-card');
+                                        card.classList.add('border-primary', 'bg-light');
+                                    }
+                                });
                             });
                         }
                     } else {
-                        // No resources available - show specific message
+                        // No resources available - show specific message with consistent styling
                         let message = 'No hay recursos disponibles';
+                        let icon = 'bi-exclamation-circle';
                         if (type === 'room') {
                             message = 'No hay habitaciones disponibles';
-                            roomsCheckboxes.innerHTML = `<p class="text-muted">${message}</p>`;
+                            roomsCheckboxes.innerHTML = `
+                                <div class="text-center py-4">
+                                    <i class="bi ${icon} text-muted fs-1"></i>
+                                    <p class="text-muted mt-2">${message}</p>
+                                </div>
+                            `;
                         } else {
                             if (type === 'table') message = 'No hay mesas disponibles';
                             else if (type === 'amenity') message = 'No hay amenidades disponibles';
-                            resourceSelect.innerHTML = `<option value="">${message}</option>`;
+                            resourceSectionSingle.innerHTML = `
+                                <label class="form-label"><strong>${type === 'table' ? 'Mesas' : 'Amenidades'} *</strong></label>
+                                <div class="text-center py-4">
+                                    <i class="bi ${icon} text-muted fs-1"></i>
+                                    <p class="text-muted mt-2">${message}</p>
+                                </div>
+                            `;
                         }
                     }
                 } else {
-                    // API returned error - show error message
+                    // API returned error - show error message with consistent styling
                     console.error('API Error:', data.message || 'Unknown error');
+                    const errorMessage = `Error: ${data.message || 'Error al cargar recursos'}`;
                     if (type === 'room') {
-                        roomsCheckboxes.innerHTML = `<p class="text-danger">Error: ${data.message || 'Error al cargar recursos'}</p>`;
+                        roomsCheckboxes.innerHTML = `
+                            <div class="text-center py-4">
+                                <i class="bi bi-exclamation-triangle text-danger fs-1"></i>
+                                <p class="text-danger mt-2">${errorMessage}</p>
+                            </div>
+                        `;
                     } else {
-                        resourceSelect.innerHTML = `<option value="">Error: ${data.message || 'Error al cargar recursos'}</option>`;
+                        resourceSectionSingle.innerHTML = `
+                            <label class="form-label"><strong>${type === 'table' ? 'Mesas' : 'Amenidades'} *</strong></label>
+                            <div class="text-center py-4">
+                                <i class="bi bi-exclamation-triangle text-danger fs-1"></i>
+                                <p class="text-danger mt-2">${errorMessage}</p>
+                            </div>
+                        `;
                     }
                 }
             })
             .catch(error => {
                 console.error('Error loading resources:', error);
+                const errorMessage = 'Error de conexión al cargar recursos';
                 if (type === 'room') {
-                    roomsCheckboxes.innerHTML = '<p class="text-danger">Error de conexión al cargar recursos</p>';
+                    roomsCheckboxes.innerHTML = `
+                        <div class="text-center py-4">
+                            <i class="bi bi-wifi-off text-danger fs-1"></i>
+                            <p class="text-danger mt-2">${errorMessage}</p>
+                        </div>
+                    `;
                 } else {
-                    resourceSelect.innerHTML = '<option value="">Error de conexión al cargar recursos</option>';
+                    resourceSectionSingle.innerHTML = `
+                        <label class="form-label"><strong>${type === 'table' ? 'Mesas' : 'Amenidades'} *</strong></label>
+                        <div class="text-center py-4">
+                            <i class="bi bi-wifi-off text-danger fs-1"></i>
+                            <p class="text-danger mt-2">${errorMessage}</p>
+                        </div>
+                    `;
                 }
             });
     }
@@ -652,7 +809,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Validate room selection
+        // Validate resource selection
         if (resType === 'room') {
             const checkedRooms = document.querySelectorAll('.room-checkbox:checked');
             if (checkedRooms.length === 0) {
@@ -660,9 +817,80 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Por favor seleccione al menos una habitación');
                 return false;
             }
+        } else if (resType === 'table' || resType === 'amenity') {
+            const selectedResource = document.querySelector('.resource-radio:checked');
+            if (!selectedResource) {
+                const resourceType = resType === 'table' ? 'una mesa' : 'una amenidad';
+                e.preventDefault();
+                alert(`Por favor seleccione ${resourceType}`);
+                return false;
+            }
         }
     });
 });
 </script>
+
+<style>
+/* Custom styles for resource cards */
+.resource-card {
+    transition: all 0.3s ease;
+    border: 2px solid #e9ecef;
+}
+
+.resource-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.resource-card.border-primary {
+    border-color: #0d6efd !important;
+    box-shadow: 0 0 0 0.1rem rgba(13, 110, 253, 0.25);
+}
+
+.resource-card.bg-light {
+    background-color: rgba(13, 110, 253, 0.05) !important;
+}
+
+.resource-card .card-body {
+    padding: 1rem;
+}
+
+.resource-card .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.resource-card .form-check-input {
+    width: 1.25em;
+    height: 1.25em;
+}
+
+.resource-card .badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+}
+
+/* Animation for card selection */
+@keyframes cardSelect {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.resource-card.border-primary {
+    animation: cardSelect 0.3s ease-out;
+}
+
+/* Responsive grid adjustments */
+@media (max-width: 768px) {
+    .resource-card .card-body {
+        padding: 0.75rem;
+    }
+    
+    .resource-card .card-title {
+        font-size: 0.9rem;
+    }
+}
+</style>
 
 <?php require_once APP_PATH . '/views/layouts/footer.php'; ?>
