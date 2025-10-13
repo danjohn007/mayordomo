@@ -273,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load resources based on type
     function loadResources(type) {
-        fetch('<?= BASE_URL ?>/api/get_resources.php?type=' + type)
+        fetch('<?= BASE_URL ?>/public/api/get_resources.php?type=' + type)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -419,7 +419,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function searchGuests(query) {
-        fetch('<?= BASE_URL ?>/api/search_guests.php?q=' + encodeURIComponent(query))
+        fetch('<?= BASE_URL ?>/public/api/search_guests.php?q=' + encodeURIComponent(query))
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.guests && data.guests.length > 0) {
@@ -484,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     function checkPhoneExists(phone) {
-        fetch('<?= BASE_URL ?>/api/check_phone.php?phone=' + encodeURIComponent(phone))
+        fetch('<?= BASE_URL ?>/public/api/check_phone.php?phone=' + encodeURIComponent(phone))
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.exists) {
@@ -554,7 +554,7 @@ document.addEventListener('DOMContentLoaded', function() {
             formData.append('code', code);
             formData.append('room_price', roomPrice);
             
-            fetch('<?= BASE_URL ?>/api/validate_discount_code.php', {
+            fetch('<?= BASE_URL ?>/public/api/validate_discount_code.php', {
                 method: 'POST',
                 body: formData
             })
