@@ -102,6 +102,16 @@ class AuthController extends BaseController {
         $_SESSION['role'] = $user['role'];
         $_SESSION['hotel_id'] = $user['hotel_id'];
         
+        // Also set user array for API compatibility
+        $_SESSION['user'] = [
+            'id' => $user['id'],
+            'email' => $user['email'],
+            'first_name' => $user['first_name'],
+            'last_name' => $user['last_name'],
+            'role' => $user['role'],
+            'hotel_id' => $user['hotel_id']
+        ];
+        
         flash('success', '¡Bienvenido ' . $user['first_name'] . '!', 'success');
         redirect('dashboard');
     }
