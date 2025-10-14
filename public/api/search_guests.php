@@ -18,9 +18,10 @@ header('Content-Type: application/json');
 ob_start();
 
 // Check if user is logged in (using the same logic as helpers.php)
-if (!isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['user_id']) || empty($_SESSION['user_id'])) {
     ob_clean(); // Clear any buffered output
-    echo json_encode(['success' => false, 'message' => 'No autorizado']);
+    error_log('API search_guests.php: Session user_id not found. Session data: ' . print_r($_SESSION, true));
+    echo json_encode(['success' => false, 'message' => 'No autorizado', 'debug' => 'Session user_id not found']);
     exit;
 }
 

@@ -85,7 +85,7 @@
                     <!-- Recurso - Single select for tables and amenities -->
                     <div class="mb-4" id="resource_section_single" style="display: none;">
                         <label for="resource_id" class="form-label"><strong>Recurso *</strong></label>
-                        <select class="form-select" id="resource_id" name="resource_id" required>
+                        <select class="form-select" id="resource_id" name="resource_id">
                             <option value="">Seleccione un recurso...</option>
                         </select>
                         <small class="text-muted" id="resource_help"></small>
@@ -120,6 +120,9 @@
                                 <input type="text" class="form-control" id="discount_code" name="discount_code" placeholder="Ingrese código promocional">
                                 <button type="button" class="btn btn-outline-primary" id="apply_discount_btn">
                                     <i class="bi bi-check-circle"></i> Aplicar
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="clear_discount_btn" style="display: none;">
+                                    <i class="bi bi-x-circle"></i> Limpiar
                                 </button>
                             </div>
                             <small class="form-text" id="discount_feedback"></small>
@@ -234,6 +237,8 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('check_out').required = true;
             document.getElementById('reservation_date').required = false;
             document.getElementById('reservation_time').required = false;
+            // Remove required attribute from resource_id when room type is selected
+            resourceSelect.required = false;
         } else if (type === 'table') {
             resourceSectionSingle.style.display = 'block';
             resourceSectionMultiple.style.display = 'none';
@@ -246,6 +251,8 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('reservation_date').required = true;
             document.getElementById('reservation_time').required = true;
             document.getElementById('party_size').required = true;
+            // Add required attribute for table reservations
+            resourceSelect.required = true;
             resourceSelect.innerHTML = '<option value="">Cargando recursos...</option>';
         } else if (type === 'amenity') {
             resourceSectionSingle.style.display = 'block';
@@ -259,10 +266,14 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('reservation_date').required = true;
             document.getElementById('reservation_time').required = true;
             document.getElementById('party_size').required = true;
+            // Add required attribute for amenity reservations
+            resourceSelect.required = true;
             resourceSelect.innerHTML = '<option value="">Cargando recursos...</option>';
         } else {
             resourceSectionSingle.style.display = 'none';
             resourceSectionMultiple.style.display = 'none';
+            // Remove required attribute when no type is selected
+            resourceSelect.required = false;
         }
         
         // Load resources via AJAX
@@ -273,7 +284,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load resources based on type
     function loadResources(type) {
-        fetch('<?= BASE_URL ?>/public/api/get_resources.php?type=' + type)
+        fetch('<?= BASE_URL ?>/public/api/get_resources.php?type=' + type, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -472,6 +490,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     // API returned error - show error message with consistent styling
                     console.error('API Error:', data.message || 'Unknown error');
+                    console.error('Full API Response:', data);
+                    
+                    // Special handling for authorization errors
+                    if (data.message === 'No autorizado') {
+                        const authErrorMessage = 'Sesión expirada. Por favor recarga la página.';
+                        if (type === 'room') {
+                            roomsCheckboxes.innerHTML = `
+                                <div class="text-center py-4">
+                                    <i class="bi bi-exclamation-triangle text-warning fs-1"></i>
+                                    <p class="text-warning mt-2">${authErrorMessage}</p>
+                                    <button class="btn btn-warning btn-sm" onclick="location.reload()">
+                                        <i class="bi bi-arrow-clockwise"></i> Recargar Página
+                                    </button>
+                                </div>
+                            `;
+                        } else {
+                            resourceSectionSingle.innerHTML = `
+                                <label class="form-label"><strong>${type === 'table' ? 'Mesas' : 'Amenidades'} *</strong></label>
+                                <div class="text-center py-4">
+                                    <i class="bi bi-exclamation-triangle text-warning fs-1"></i>
+                                    <p class="text-warning mt-2">${authErrorMessage}</p>
+                                    <button class="btn btn-warning btn-sm" onclick="location.reload()">
+                                        <i class="bi bi-arrow-clockwise"></i> Recargar Página
+                                    </button>
+                                </div>
+                            `;
+                        }
+                        return;
+                    }
+                    
                     const errorMessage = `Error: ${data.message || 'Error al cargar recursos'}`;
                     if (type === 'room') {
                         roomsCheckboxes.innerHTML = `
@@ -499,6 +547,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="text-center py-4">
                             <i class="bi bi-wifi-off text-danger fs-1"></i>
                             <p class="text-danger mt-2">${errorMessage}</p>
+                            <button class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+                                <i class="bi bi-arrow-clockwise"></i> Recargar Página
+                            </button>
                         </div>
                     `;
                 } else {
@@ -507,6 +558,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="text-center py-4">
                             <i class="bi bi-wifi-off text-danger fs-1"></i>
                             <p class="text-danger mt-2">${errorMessage}</p>
+                            <button class="btn btn-outline-primary btn-sm" onclick="location.reload()">
+                                <i class="bi bi-arrow-clockwise"></i> Recargar Página
+                            </button>
                         </div>
                     `;
                 }
@@ -517,10 +571,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateRoomPrices() {
         const checkedBoxes = document.querySelectorAll('.room-checkbox:checked');
         if (checkedBoxes.length === 0) {
-            // No rooms selected, hide price summary
+            // No rooms selected, hide price summary and reset discount
             if (priceSummary) {
                 priceSummary.style.display = 'none';
             }
+            resetDiscountState();
             return;
         }
         
@@ -535,8 +590,38 @@ document.addEventListener('DOMContentLoaded', function() {
             originalPriceInput.value = totalPrice;
         }
         
-        // Note: Discount functionality would need to be updated to work with multiple rooms
-        // For now, we'll just show the total price
+        // If there's a discount applied, reset it since room selection changed
+        if (discountCodeIdInput && discountCodeIdInput.value) {
+            resetDiscountState();
+            showDiscountFeedback('La selección de habitaciones cambió. Por favor vuelva a aplicar el código de descuento.', 'info');
+        }
+    }
+    
+    // Function to reset discount state
+    function resetDiscountState() {
+        initializeDiscountElements();
+        if (discountCodeInput) {
+            discountCodeInput.value = '';
+            discountCodeInput.disabled = false;
+            discountCodeInput.style.backgroundColor = '';
+        }
+        if (discountCodeIdInput) discountCodeIdInput.value = '';
+        if (discountAmountInput) discountAmountInput.value = '0';
+        if (originalPriceInput) originalPriceInput.value = '';
+        if (priceSummary) priceSummary.style.display = 'none';
+        if (discountFeedback) {
+            discountFeedback.textContent = '';
+            discountFeedback.className = 'form-text';
+        }
+        if (applyDiscountBtn) {
+            applyDiscountBtn.disabled = false;
+            applyDiscountBtn.innerHTML = '<i class="bi bi-check-circle"></i> Aplicar';
+            applyDiscountBtn.classList.remove('btn-success');
+            applyDiscountBtn.classList.add('btn-outline-primary');
+        }
+        if (clearDiscountBtn) {
+            clearDiscountBtn.style.display = 'none';
+        }
     }
 
     // Handle guest type toggle
@@ -576,7 +661,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function searchGuests(query) {
-        fetch('<?= BASE_URL ?>/public/api/search_guests.php?q=' + encodeURIComponent(query))
+        fetch('<?= BASE_URL ?>/public/api/search_guests.php?q=' + encodeURIComponent(query), {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.guests && data.guests.length > 0) {
@@ -666,115 +758,66 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Handle discount code validation
-    const applyDiscountBtn = document.getElementById('apply_discount_btn');
-    const discountCodeInput = document.getElementById('discount_code');
-    const discountFeedback = document.getElementById('discount_feedback');
-    const discountCodeIdInput = document.getElementById('discount_code_id');
-    const discountAmountInput = document.getElementById('discount_amount');
-    const originalPriceInput = document.getElementById('original_price');
-    const priceSummary = document.getElementById('price_summary');
-    
-    if (applyDiscountBtn) {
-        applyDiscountBtn.addEventListener('click', function() {
-            const code = discountCodeInput.value.trim();
-            const resourceId = resourceSelect.value;
+    let applyDiscountBtn, discountCodeInput, discountFeedback, discountCodeIdInput, 
+        discountAmountInput, originalPriceInput, priceSummary,
+        displayOriginalPrice, displayDiscount, displayFinalPrice, clearDiscountBtn;
+
+    // Initialize discount elements when needed
+    function initializeDiscountElements() {
+        if (!applyDiscountBtn) {
+            applyDiscountBtn = document.getElementById('apply_discount_btn');
+            discountCodeInput = document.getElementById('discount_code');
+            discountFeedback = document.getElementById('discount_feedback');
+            discountCodeIdInput = document.getElementById('discount_code_id');
+            discountAmountInput = document.getElementById('discount_amount');
+            originalPriceInput = document.getElementById('original_price');
+            priceSummary = document.getElementById('price_summary');
+            displayOriginalPrice = document.getElementById('display_original_price');
+            displayDiscount = document.getElementById('display_discount');
+            displayFinalPrice = document.getElementById('display_final_price');
+            clearDiscountBtn = document.getElementById('clear_discount_btn');
             
-            if (!code) {
-                showDiscountFeedback('Por favor ingrese un código de descuento', 'danger');
-                return;
-            }
-            
-            if (!resourceId) {
-                showDiscountFeedback('Por favor seleccione una habitación primero', 'warning');
-                return;
-            }
-            
-            // Get room price from selected option
-            const selectedOption = resourceSelect.options[resourceSelect.selectedIndex];
-            const optionText = selectedOption.textContent;
-            const priceMatch = optionText.match(/\$(\d+(?:\.\d{2})?)/);
-            
-            if (!priceMatch) {
-                showDiscountFeedback('No se pudo obtener el precio de la habitación', 'danger');
-                return;
-            }
-            
-            const roomPrice = parseFloat(priceMatch[1]);
-            
-            // Show loading state
-            applyDiscountBtn.disabled = true;
-            applyDiscountBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Validando...';
-            discountFeedback.textContent = '';
-            
-            // Validate discount code via API
-            const formData = new FormData();
-            formData.append('code', code);
-            formData.append('room_price', roomPrice);
-            
-            fetch('<?= BASE_URL ?>/public/api/validate_discount_code.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Discount is valid
-                    const discount = data.discount;
-                    
-                    // Store discount information in hidden fields
-                    discountCodeIdInput.value = discount.id;
-                    discountAmountInput.value = discount.discount_amount;
-                    originalPriceInput.value = discount.original_price;
-                    
-                    // Show success feedback
-                    let feedbackMsg = `✓ Código válido: `;
-                    if (discount.type === 'percentage') {
-                        feedbackMsg += `${discount.amount}% de descuento`;
-                    } else {
-                        feedbackMsg += `$${discount.amount} de descuento`;
-                    }
-                    showDiscountFeedback(feedbackMsg, 'success');
-                    
-                    // Show price summary
-                    document.getElementById('display_original_price').textContent = `$${discount.original_price.toFixed(2)}`;
-                    document.getElementById('display_discount').textContent = `-$${discount.discount_amount.toFixed(2)}`;
-                    document.getElementById('display_final_price').textContent = `$${discount.final_price.toFixed(2)}`;
-                    priceSummary.style.display = 'block';
-                    
-                    // Disable the input and button after successful application
-                    discountCodeInput.disabled = true;
-                    applyDiscountBtn.disabled = true;
-                    applyDiscountBtn.innerHTML = '<i class="bi bi-check-circle"></i> Aplicado';
-                } else {
-                    // Discount is invalid
-                    showDiscountFeedback(data.message, 'danger');
-                    clearDiscountData();
-                }
-            })
-            .catch(error => {
-                console.error('Error validating discount code:', error);
-                showDiscountFeedback('Error de conexión al validar código', 'danger');
-                clearDiscountData();
-            })
-            .finally(() => {
-                if (!discountCodeInput.disabled) {
-                    applyDiscountBtn.disabled = false;
-                    applyDiscountBtn.innerHTML = '<i class="bi bi-check-circle"></i> Aplicar';
-                }
+            // Debug logging
+            console.log('Discount elements initialized:', {
+                applyDiscountBtn: !!applyDiscountBtn,
+                discountCodeInput: !!discountCodeInput,
+                discountFeedback: !!discountFeedback,
+                priceSummary: !!priceSummary,
+                displayOriginalPrice: !!displayOriginalPrice,
+                displayDiscount: !!displayDiscount,
+                displayFinalPrice: !!displayFinalPrice,
+                clearDiscountBtn: !!clearDiscountBtn
             });
-        });
+        }
+    }
+
+    // Check if discount functionality is available
+    function isDiscountAvailable() {
+        initializeDiscountElements();
+        return applyDiscountBtn && discountCodeInput && discountFeedback && 
+               priceSummary && displayOriginalPrice && displayDiscount && displayFinalPrice;
     }
     
     function showDiscountFeedback(message, type) {
-        discountFeedback.textContent = message;
-        discountFeedback.className = `form-text text-${type}`;
+        initializeDiscountElements();
+        if (discountFeedback) {
+            discountFeedback.textContent = message;
+            discountFeedback.className = `form-text text-${type}`;
+        } else {
+            console.warn('Element discount_feedback not found');
+            // Fallback: try to show message via alert if element not available
+            if (type === 'danger') {
+                alert('Error: ' + message);
+            }
+        }
     }
     
     function clearDiscountData() {
-        discountCodeIdInput.value = '';
-        discountAmountInput.value = '0';
-        originalPriceInput.value = '';
-        priceSummary.style.display = 'none';
+        initializeDiscountElements();
+        if (discountCodeIdInput) discountCodeIdInput.value = '';
+        if (discountAmountInput) discountAmountInput.value = '0';
+        if (originalPriceInput) originalPriceInput.value = '';
+        if (priceSummary) priceSummary.style.display = 'none';
     }
     
     // Reset discount when room changes
@@ -827,6 +870,172 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+    
+    // Initialize discount functionality
+    setTimeout(() => {
+        initializeDiscountElements();
+        
+        // Add discount button event listener
+        if (applyDiscountBtn) {
+            applyDiscountBtn.addEventListener('click', function() {
+                console.log('Apply discount button clicked');
+                
+                if (!isDiscountAvailable()) {
+                    console.error('Discount elements not available');
+                    alert('Error: Elementos de descuento no disponibles');
+                    return;
+                }
+                
+                const code = discountCodeInput.value.trim();
+                const currentReservationType = reservationType.value;
+        
+                if (!code) {
+                    showDiscountFeedback('Por favor ingrese un código de descuento', 'danger');
+                    return;
+                }
+                
+                // Get selected rooms and calculate total price
+                let totalPrice = 0;
+                let hasSelectedRooms = false;
+                
+                if (currentReservationType === 'room') {
+                    // For room reservations, check checkboxes
+                    const checkedRooms = document.querySelectorAll('.room-checkbox:checked');
+                    if (checkedRooms.length === 0) {
+                        showDiscountFeedback('Por favor seleccione al menos una habitación primero', 'warning');
+                        return;
+                    }
+                    
+                    // Calculate total price from selected rooms
+                    checkedRooms.forEach(checkbox => {
+                        const price = parseFloat(checkbox.dataset.price) || 0;
+                        totalPrice += price;
+                    });
+                    hasSelectedRooms = true;
+                } else {
+                    // For non-room reservations, this should not be available but handle gracefully
+                    showDiscountFeedback('Los códigos de descuento solo están disponibles para reservaciones de habitaciones', 'warning');
+                    return;
+                }
+                
+                if (!hasSelectedRooms || totalPrice <= 0) {
+                    showDiscountFeedback('No se pudo calcular el precio de las habitaciones seleccionadas', 'danger');
+                    return;
+                }
+                
+                // Show loading state
+                applyDiscountBtn.disabled = true;
+                applyDiscountBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Validando...';
+                if (discountFeedback) {
+                    discountFeedback.textContent = '';
+                    discountFeedback.className = 'form-text';
+                }
+                
+                // Validate discount code via API
+                const formData = new FormData();
+                formData.append('code', code);
+                formData.append('room_price', totalPrice);
+                
+                console.log('Sending discount validation request:', { code, totalPrice });
+                
+                fetch('<?= BASE_URL ?>/public/api/validate_discount_code.php', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    console.log('Discount API response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Discount API response data:', data);
+                    
+                    if (data.success) {
+                        // Discount is valid
+                        const discount = data.discount;
+                        console.log('Discount applied successfully:', discount);
+                        
+                        // Store discount information in hidden fields
+                        if (discountCodeIdInput) discountCodeIdInput.value = discount.id;
+                        if (discountAmountInput) discountAmountInput.value = discount.discount_amount;
+                        if (originalPriceInput) originalPriceInput.value = discount.original_price;
+                        
+                        // Show success feedback
+                        let feedbackMsg = `✓ Código válido: `;
+                        if (discount.type === 'percentage') {
+                            feedbackMsg += `${discount.amount}% de descuento`;
+                        } else {
+                            feedbackMsg += `$${discount.amount} de descuento`;
+                        }
+                        showDiscountFeedback(feedbackMsg, 'success');
+                        
+                        // Show price summary - with validation
+                        if (displayOriginalPrice && displayDiscount && displayFinalPrice && priceSummary) {
+                            displayOriginalPrice.textContent = `$${discount.original_price.toFixed(2)}`;
+                            displayDiscount.textContent = `-$${discount.discount_amount.toFixed(2)}`;
+                            displayFinalPrice.textContent = `$${discount.final_price.toFixed(2)}`;
+                            priceSummary.style.display = 'block';
+                            console.log('Price summary updated and displayed');
+                        } else {
+                            console.warn('Price summary elements not found');
+                            // Show price info in feedback message as fallback
+                            const priceInfo = ` (Precio original: $${discount.original_price.toFixed(2)}, Descuento: -$${discount.discount_amount.toFixed(2)}, Total: $${discount.final_price.toFixed(2)})`;
+                            showDiscountFeedback(feedbackMsg + priceInfo, 'success');
+                        }
+                        
+                        // Disable the input and button after successful application
+                        if (discountCodeInput) {
+                            discountCodeInput.disabled = true;
+                            discountCodeInput.style.backgroundColor = '#f8f9fa';
+                        }
+                        if (applyDiscountBtn) {
+                            applyDiscountBtn.disabled = true;
+                            applyDiscountBtn.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i> Aplicado';
+                            applyDiscountBtn.classList.remove('btn-outline-primary');
+                            applyDiscountBtn.classList.add('btn-success');
+                        }
+                        
+                        // Show clear button
+                        if (clearDiscountBtn) {
+                            clearDiscountBtn.style.display = 'inline-block';
+                        }
+                    } else {
+                        // Discount is invalid
+                        console.log('Discount validation failed:', data.message);
+                        showDiscountFeedback(data.message, 'danger');
+                        clearDiscountData();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error validating discount code:', error);
+                    showDiscountFeedback('Error de conexión al validar código', 'danger');
+                    clearDiscountData();
+                })
+                .finally(() => {
+                    if (!discountCodeInput || !discountCodeInput.disabled) {
+                        if (applyDiscountBtn) {
+                            applyDiscountBtn.disabled = false;
+                            applyDiscountBtn.innerHTML = '<i class="bi bi-check-circle"></i> Aplicar';
+                        }
+                    }
+                });
+            });
+        } else {
+            console.warn('Apply discount button not found');
+        }
+        
+        // Add event listener for clear discount button
+        if (clearDiscountBtn) {
+            clearDiscountBtn.addEventListener('click', function() {
+                console.log('Clear discount button clicked');
+                resetDiscountState();
+                showDiscountFeedback('Código de descuento eliminado', 'info');
+            });
+        }
+    }, 1000); // Wait for room section to be loaded
 });
 </script>
 
