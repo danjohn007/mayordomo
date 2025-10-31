@@ -422,56 +422,57 @@ class AuthController extends BaseController {
         
         try {
             // Generate reset token
-            $token = generateToken(32);
-            $expires_at = date('Y-m-d H:i:s', strtotime('+1 hour'));
+            $token = bin2hex(random_bytes(32)); // 64 caracteres hexadecimales
             
-            // Save token to database
+            // Cargar helper de logging
+            require_once APP_PATH . '/helpers/email_logger.php';
+            logEmail("=== Generando token de reset ===");
+            logEmail("User ID: {$user['id']}, Email: $email");
+            logEmail("Token generado: $token");
+            
+            // Save token to database - Usar DATE_ADD de MySQL para evitar problemas de zona horaria
             $stmt = $this->db->prepare("
                 INSERT INTO password_resets (user_id, token, expires_at, created_at)
-                VALUES (?, ?, ?, NOW())
+                VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NOW())
             ");
-            $stmt->execute([$user['id'], $token, $expires_at]);
+            $stmt->execute([$user['id'], $token]);
+            logEmail("Token guardado en base de datos");
             
-            // Send email with reset link
+            // Verificar que se guardó correctamente
+            $check = $this->db->prepare("SELECT expires_at, created_at FROM password_resets WHERE token = ?");
+            $check->execute([$token]);
+            $saved = $check->fetch();
+            logEmail("Token verificado - Creado: {$saved['created_at']}, Expira: {$saved['expires_at']}");
+            
+            // Send email with reset link using new service
             $resetLink = BASE_URL . '/auth/resetPassword?token=' . $token;
-            $subject = 'Recuperación de Contraseña - ' . APP_NAME;
-            $body = "
-                <html>
-                <head>
-                    <style>
-                        body { font-family: Arial, sans-serif; line-height: 1.6; }
-                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                        .button { background-color: #0d6efd; color: white; padding: 12px 24px; 
-                                 text-decoration: none; border-radius: 5px; display: inline-block; }
-                    </style>
-                </head>
-                <body>
-                    <div class='container'>
-                        <h2>Recuperación de Contraseña</h2>
-                        <p>Hola {$user['first_name']},</p>
-                        <p>Hemos recibido una solicitud para restablecer tu contraseña. 
-                           Haz clic en el siguiente enlace para continuar:</p>
-                        <p style='margin: 30px 0;'>
-                            <a href='{$resetLink}' class='button'>Restablecer Contraseña</a>
-                        </p>
-                        <p>O copia y pega este enlace en tu navegador:</p>
-                        <p style='word-break: break-all; color: #666;'>{$resetLink}</p>
-                        <p>Este enlace expirará en 1 hora.</p>
-                        <p>Si no solicitaste este cambio, puedes ignorar este correo.</p>
-                        <hr style='margin: 30px 0;'>
-                        <p style='color: #666; font-size: 12px;'>
-                            Este es un correo automático de " . APP_NAME . ". Por favor no respondas a este mensaje.
-                        </p>
-                    </div>
-                </body>
-                </html>
-            ";
+            logEmail("Reset link: $resetLink");
             
-            sendEmail($email, $subject, $body, true);
+            // Cargar vendor autoload para PHPMailer
+            if (file_exists(ROOT_PATH . '/vendor/autoload.php')) {
+                require_once ROOT_PATH . '/vendor/autoload.php';
+                logEmail("PHPMailer autoload cargado");
+            } else {
+                logEmail("ERROR: PHPMailer no está instalado");
+                throw new Exception("PHPMailer no está instalado");
+            }
+            
+            // Cargar el servicio de email de reset
+            require_once APP_PATH . '/services/PasswordResetEmailService.php';
+            
+            $resetEmailService = new PasswordResetEmailService();
+            $emailSent = $resetEmailService->sendPasswordResetEmail($email, $user['first_name'], $resetLink);
+            
+            if ($emailSent) {
+                logEmail("✅ Correo de recuperación enviado exitosamente");
+            } else {
+                logEmail("❌ Error al enviar correo de recuperación");
+            }
             
             flash('success', 'Si el email existe en nuestro sistema, recibirás un enlace de recuperación en breve.', 'success');
             
         } catch (Exception $e) {
+            logEmail("❌ EXCEPCIÓN en processForgotPassword: " . $e->getMessage());
             error_log("Password reset error: " . $e->getMessage());
             flash('error', 'Ocurrió un error al procesar tu solicitud. Por favor intenta más tarde.', 'danger');
         }
@@ -489,10 +490,31 @@ class AuthController extends BaseController {
         
         $token = $_GET['token'] ?? '';
         
+        // Cargar helper de logging
+        require_once APP_PATH . '/helpers/email_logger.php';
+        logEmail("=== Verificando token de reset ===");
+        logEmail("Token recibido RAW: " . var_export($token, true));
+        logEmail("Longitud del token: " . strlen($token));
+        
+        // Limpiar posibles espacios o caracteres especiales
+        $token = trim($token);
+        logEmail("Token después de trim: $token");
+        
         if (empty($token)) {
+            logEmail("ERROR: Token vacío");
             flash('error', 'Token de recuperación inválido', 'danger');
             redirect('auth/forgotPassword');
         }
+        
+        // Primero verificar si el token existe
+        $stmt_check = $this->db->prepare("SELECT COUNT(*) as count FROM password_resets WHERE token = ?");
+        $stmt_check->execute([$token]);
+        $exists = $stmt_check->fetch();
+        logEmail("Token existe en BD: " . ($exists['count'] > 0 ? 'SÍ' : 'NO'));
+        
+        // Verificar fecha actual del servidor
+        $serverTime = $this->db->query("SELECT NOW() as now")->fetch();
+        logEmail("Fecha/hora servidor BD: {$serverTime['now']}");
         
         // Verify token
         $stmt = $this->db->prepare("
@@ -503,6 +525,23 @@ class AuthController extends BaseController {
         ");
         $stmt->execute([$token]);
         $resetRequest = $stmt->fetch();
+        
+        if ($resetRequest) {
+            logEmail("✅ Token válido encontrado para user: {$resetRequest['email']}");
+        } else {
+            logEmail("❌ Token NO válido o expirado");
+            
+            // Verificar si el token existe pero está usado o expirado
+            $stmt2 = $this->db->prepare("SELECT * FROM password_resets WHERE token = ?");
+            $stmt2->execute([$token]);
+            $tokenInfo = $stmt2->fetch();
+            
+            if ($tokenInfo) {
+                logEmail("Token existe en BD - Used: {$tokenInfo['used']}, Expires: {$tokenInfo['expires_at']}");
+            } else {
+                logEmail("Token NO existe en la base de datos");
+            }
+        }
         
         $this->view('auth/reset_password', [
             'title' => 'Restablecer Contraseña',
@@ -545,6 +584,11 @@ class AuthController extends BaseController {
         }
         
         try {
+            // Cargar helper de logging
+            require_once APP_PATH . '/helpers/email_logger.php';
+            logEmail("=== Procesando reset de contraseña ===");
+            logEmail("Token: $token");
+            
             // Verify token again
             $stmt = $this->db->prepare("
                 SELECT pr.*, u.id as user_id, u.email 
@@ -556,21 +600,27 @@ class AuthController extends BaseController {
             $resetRequest = $stmt->fetch();
             
             if (!$resetRequest) {
+                logEmail("❌ Token inválido o expirado en processResetPassword");
                 flash('error', 'El enlace de recuperación es inválido o ha expirado', 'danger');
                 redirect('auth/forgotPassword');
             }
+            
+            logEmail("✅ Token válido, actualizando contraseña para user: {$resetRequest['email']}");
             
             // Update password
             $hashedPassword = password_hash($password, PASSWORD_HASH_ALGO, ['cost' => PASSWORD_HASH_COST]);
             
             $stmt = $this->db->prepare("UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?");
             $stmt->execute([$hashedPassword, $resetRequest['user_id']]);
+            logEmail("✅ Contraseña actualizada en BD");
             
             // Mark token as used
             $stmt = $this->db->prepare("UPDATE password_resets SET used = 1 WHERE token = ?");
             $stmt->execute([$token]);
+            logEmail("✅ Token marcado como usado");
             
             flash('success', '¡Contraseña actualizada exitosamente! Ahora puedes iniciar sesión.', 'success');
+            logEmail("=== Proceso completado exitosamente ===");
             redirect('auth/login');
             
         } catch (Exception $e) {

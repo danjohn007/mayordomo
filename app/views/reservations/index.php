@@ -40,7 +40,7 @@
             <div class="col-md-3">
                 <label class="form-label">Buscar</label>
                 <input type="text" class="form-control" name="search" 
-                       placeholder="Nombre, email, número..." 
+                       placeholder="Nombre, email, habitación, PIN..." 
                        value="<?= e($filters['search'] ?? '') ?>">
             </div>
             <div class="col-md-2">
@@ -73,6 +73,7 @@
                         <th>Huésped</th>
                         <th>Fecha</th>
                         <th>Estado</th>
+                        <th>PIN</th>
                         <th class="text-center">Acciones</th>
                     </tr>
                 </thead>
@@ -126,6 +127,15 @@
                                 $label = $statusLabels[$reservation['status']] ?? $reservation['status'];
                                 ?>
                                 <span class="badge bg-<?= $color ?>"><?= $label ?></span>
+                            </td>
+                            <td>
+                                <?php if (!empty($reservation['confirmation_code'])): ?>
+                                    <span class="badge bg-dark" style="font-family: monospace; font-size: 0.85em;" title="PIN de Confirmación">
+                                        <i class="bi bi-key-fill"></i> <?= e($reservation['confirmation_code']) ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span class="text-muted">-</span>
+                                <?php endif; ?>
                             </td>
                             <td class="action-buttons text-center">
                                 <?php if (hasRole(['admin', 'manager', 'hostess'])): ?>

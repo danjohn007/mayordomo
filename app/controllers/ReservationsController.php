@@ -30,8 +30,8 @@ class ReservationsController extends BaseController {
             'date_to' => sanitize($_GET['date_to'] ?? '')
         ];
         
-        // Construir query base
-        $sql = "SELECT * FROM v_all_reservations WHERE hotel_id = ?";
+        // Construir query base - solo mostrar reservaciones activas (no canceladas)
+        $sql = "SELECT * FROM v_all_reservations WHERE hotel_id = ? AND status != 'cancelled'";
         $params = [$hotelId];
         
         // Aplicar filtros
@@ -46,8 +46,9 @@ class ReservationsController extends BaseController {
         }
         
         if (!empty($filters['search'])) {
-            $sql .= " AND (guest_name LIKE ? OR guest_email LIKE ? OR resource_number LIKE ?)";
+            $sql .= " AND (guest_name LIKE ? OR guest_email LIKE ? OR resource_number LIKE ? OR confirmation_code LIKE ?)";
             $searchParam = '%' . $filters['search'] . '%';
+            $params[] = $searchParam;
             $params[] = $searchParam;
             $params[] = $searchParam;
             $params[] = $searchParam;
@@ -195,6 +196,7 @@ class ReservationsController extends BaseController {
                 $originalPrice = floatval($_POST['original_price'] ?? 0);
                 
                 $totalRoomsCreated = 0;
+                $createdReservationIds = []; // Para guardar los IDs creados
                 
                 // Create a reservation for each selected room
                 foreach ($roomIds as $roomId) {
@@ -254,6 +256,11 @@ class ReservationsController extends BaseController {
                         
                         $reservationId = $this->db->lastInsertId();
                         
+                        // Generar y guardar PIN de confirmación
+                        $confirmationPin = generateConfirmationPin($checkIn, $reservationId);
+                        $updateStmt = $this->db->prepare("UPDATE room_reservations SET confirmation_code = ? WHERE id = ?");
+                        $updateStmt->execute([$confirmationPin, $reservationId]);
+                        
                         // Record discount code usage
                         $usageStmt = $this->db->prepare("
                             INSERT INTO discount_code_usages 
@@ -288,8 +295,17 @@ class ReservationsController extends BaseController {
                             $status,
                             $notes
                         ]);
+                        
+                        $reservationId = $this->db->lastInsertId();
+                        
+                        // Generar y guardar PIN de confirmación
+                        $confirmationPin = generateConfirmationPin($checkIn, $reservationId);
+                        $updateStmt = $this->db->prepare("UPDATE room_reservations SET confirmation_code = ? WHERE id = ?");
+                        $updateStmt->execute([$confirmationPin, $reservationId]);
                     }
                     
+                    // Guardar el ID de la reservación creada
+                    $createdReservationIds[] = $reservationId;
                     $totalRoomsCreated++;
                 }
                 
@@ -330,6 +346,12 @@ class ReservationsController extends BaseController {
                     $status,
                     $notes
                 ]);
+                
+                // Generar y guardar PIN de confirmación para mesa
+                $tableReservationId = $this->db->lastInsertId();
+                $confirmationPin = generateConfirmationPin($reservationDate, $tableReservationId);
+                $updateStmt = $this->db->prepare("UPDATE table_reservations SET confirmation_code = ? WHERE id = ?");
+                $updateStmt->execute([$confirmationPin, $tableReservationId]);
             } elseif ($type === 'amenity') {
                 $reservationDate = sanitize($_POST['reservation_date'] ?? '');
                 $reservationTime = sanitize($_POST['reservation_time'] ?? '');
@@ -388,11 +410,31 @@ class ReservationsController extends BaseController {
                     $status,
                     $notes
                 ]);
+                
+                // Generar y guardar PIN de confirmación para amenidad
+                $amenityReservationId = $this->db->lastInsertId();
+                $confirmationPin = generateConfirmationPin($reservationDate, $amenityReservationId);
+                $updateStmt = $this->db->prepare("UPDATE amenity_reservations SET confirmation_code = ? WHERE id = ?");
+                $updateStmt->execute([$confirmationPin, $amenityReservationId]);
             } else {
                 throw new Exception('Tipo de reservación inválido');
             }
             
             $this->db->commit();
+            
+            // Enviar correo de confirmación según el tipo de reservación
+            if ($type === 'room' && isset($createdReservationIds) && !empty($createdReservationIds)) {
+                // Para habitaciones múltiples, enviar un correo por cada una
+                foreach ($createdReservationIds as $reservationId) {
+                    $this->sendReservationEmail($type, $reservationId, $guestEmail, $guestName);
+                }
+            } elseif ($type === 'table' && isset($tableReservationId)) {
+                // Para mesas
+                $this->sendReservationEmail($type, $tableReservationId, $guestEmail, $guestName);
+            } elseif ($type === 'amenity' && isset($amenityReservationId)) {
+                // Para amenidades
+                $this->sendReservationEmail($type, $amenityReservationId, $guestEmail, $guestName);
+            }
             
             // Custom success message for multiple rooms
             if ($type === 'room' && isset($totalRoomsCreated) && $totalRoomsCreated > 1) {
@@ -421,11 +463,21 @@ class ReservationsController extends BaseController {
         $table = $type === 'room' ? 'room_reservations' : ($type === 'table' ? 'table_reservations' : 'amenity_reservations');
         
         try {
-            $stmt = $this->db->prepare("UPDATE {$table} SET status = 'confirmed' WHERE id = ?");
-            $stmt->execute([$id]);
+            // Obtener datos de la reservación antes de confirmar
+            $reservationData = $this->getReservationDetails($type, $id);
             
-            // For tables and amenities, the trigger will automatically create a 2-hour block
-            flash('success', 'Reservación confirmada exitosamente', 'success');
+            if ($reservationData) {
+                // Actualizar estado a confirmado
+                $stmt = $this->db->prepare("UPDATE {$table} SET status = 'confirmed' WHERE id = ?");
+                $stmt->execute([$id]);
+                
+                // Enviar correo de confirmación con PIN
+                $this->sendConfirmationEmail($type, $id, $reservationData['guest_email'], $reservationData['guest_name']);
+                
+                flash('success', 'Reservación confirmada exitosamente y correo enviado al huésped', 'success');
+            } else {
+                flash('error', 'No se pudo obtener la información de la reservación', 'danger');
+            }
         } catch (Exception $e) {
             flash('error', 'Error al confirmar la reservación: ' . $e->getMessage(), 'danger');
         }
@@ -587,5 +639,141 @@ class ReservationsController extends BaseController {
         }
         
         redirect('reservations');
+    }
+    
+    /**
+     * Enviar correo de confirmación de reservación
+     */
+    private function sendReservationEmail($type, $reservationId, $guestEmail, $guestName, $includePin = false) {
+        try {
+            // Cargar helper de logging
+            require_once APP_PATH . '/helpers/email_logger.php';
+            
+            // Log para debug
+            logEmail("=== INICIO envío de correo ===");
+            logEmail("Type: $type, ID: $reservationId, Email: $guestEmail, Name: $guestName");
+            logEmail("Include PIN: " . ($includePin ? 'YES' : 'NO'));
+            
+            // Cargar vendor autoload para PHPMailer
+            if (file_exists(ROOT_PATH . '/vendor/autoload.php')) {
+                require_once ROOT_PATH . '/vendor/autoload.php';
+                logEmail("PHPMailer autoload cargado correctamente");
+            } else {
+                logEmail("ERROR: PHPMailer no está instalado. No se puede enviar correo.");
+                return false;
+            }
+            
+            // Cargar el servicio de email
+            require_once APP_PATH . '/services/EmailService.php';
+            
+            // Obtener los detalles de la reservación
+            logEmail("Obteniendo detalles de la reservación...");
+            $reservationData = $this->getReservationDetails($type, $reservationId);
+            
+            if (!$reservationData) {
+                logEmail("ERROR: No se encontraron detalles de la reservación ID: $reservationId");
+                return false;
+            }
+            
+            logEmail("Detalles obtenidos: " . json_encode($reservationData));
+            
+            // Agregar información adicional
+            $reservationData['type'] = $type;
+            $reservationData['reservation_id'] = $reservationId;
+            $reservationData['guest_email'] = $guestEmail;
+            $reservationData['guest_name'] = $guestName;
+            $reservationData['include_pin'] = $includePin;
+            
+            // Enviar correo
+            logEmail("Inicializando EmailService...");
+            $emailService = new EmailService();
+            
+            logEmail("Enviando correo de confirmación...");
+            $result = $emailService->sendReservationConfirmation($reservationData);
+            
+            if ($result) {
+                logEmail("✅ Correo de confirmación enviado exitosamente para reservación #$reservationId");
+            } else {
+                logEmail("❌ No se pudo enviar el correo de confirmación para reservación #$reservationId");
+            }
+            
+            logEmail("=== FIN envío de correo ===");
+            return $result;
+            
+        } catch (Exception $e) {
+            logEmail("❌ EXCEPCIÓN al enviar correo de confirmación: " . $e->getMessage());
+            logEmail("Stack trace: " . $e->getTraceAsString());
+            return false;
+        }
+    }
+    
+    /**
+     * Enviar correo de confirmación CON PIN (cuando se confirma la reservación)
+     */
+    private function sendConfirmationEmail($type, $reservationId, $guestEmail, $guestName) {
+        // Llamar al método sendReservationEmail con includePin = true
+        return $this->sendReservationEmail($type, $reservationId, $guestEmail, $guestName, true);
+    }
+    
+    /**
+     * Obtener detalles de la reservación según el tipo
+     */
+    private function getReservationDetails($type, $reservationId) {
+        try {
+            if ($type === 'room') {
+                $stmt = $this->db->prepare("
+                    SELECT 
+                        rr.*,
+                        r.room_number,
+                        rr.check_in as check_in,
+                        rr.check_out as check_out,
+                        rr.total_price
+                    FROM room_reservations rr
+                    JOIN rooms r ON rr.room_id = r.id
+                    WHERE rr.id = ?
+                ");
+                $stmt->execute([$reservationId]);
+                $data = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+            } elseif ($type === 'table') {
+                $stmt = $this->db->prepare("
+                    SELECT 
+                        tr.*,
+                        rt.table_number,
+                        tr.reservation_date,
+                        tr.reservation_time,
+                        tr.party_size
+                    FROM table_reservations tr
+                    JOIN restaurant_tables rt ON tr.table_id = rt.id
+                    WHERE tr.id = ?
+                ");
+                $stmt->execute([$reservationId]);
+                $data = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+            } elseif ($type === 'amenity') {
+                $stmt = $this->db->prepare("
+                    SELECT 
+                        ar.*,
+                        a.name as amenity_name,
+                        ar.reservation_date,
+                        ar.reservation_time,
+                        ar.party_size
+                    FROM amenity_reservations ar
+                    JOIN amenities a ON ar.amenity_id = a.id
+                    WHERE ar.id = ?
+                ");
+                $stmt->execute([$reservationId]);
+                $data = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+            } else {
+                return null;
+            }
+            
+            return $data;
+            
+        } catch (Exception $e) {
+            error_log("Error al obtener detalles de reservación: " . $e->getMessage());
+            return null;
+        }
     }
 }

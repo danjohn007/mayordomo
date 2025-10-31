@@ -5,7 +5,7 @@
 -- Drop existing view if exists
 DROP VIEW IF EXISTS v_all_reservations;
 
--- Create updated view including amenity reservations
+-- Create updated view including amenity reservations and confirmation_code
 CREATE OR REPLACE VIEW v_all_reservations AS
 SELECT 
     'room' as reservation_type,
@@ -22,7 +22,8 @@ SELECT
     COALESCE(rr.guest_phone, u.phone) as guest_phone,
     rr.total_price,
     COALESCE(rr.special_requests, rr.notes) as notes,
-    rr.notification_sent
+    rr.notification_sent,
+    rr.confirmation_code
 FROM room_reservations rr
 JOIN rooms r ON rr.room_id = r.id
 LEFT JOIN users u ON rr.guest_id = u.id
@@ -44,7 +45,8 @@ SELECT
     COALESCE(tr.guest_phone, u.phone) as guest_phone,
     NULL as total_price,
     tr.notes,
-    tr.notification_sent
+    tr.notification_sent,
+    tr.confirmation_code
 FROM table_reservations tr
 JOIN restaurant_tables rt ON tr.table_id = rt.id
 LEFT JOIN users u ON tr.guest_id = u.id
@@ -66,7 +68,8 @@ SELECT
     COALESCE(ar.guest_phone, u.phone) as guest_phone,
     NULL as total_price,
     COALESCE(ar.notes, ar.special_requests) as notes,
-    ar.notification_sent
+    ar.notification_sent,
+    ar.confirmation_code
 FROM amenity_reservations ar
 JOIN amenities a ON ar.amenity_id = a.id
 LEFT JOIN users u ON ar.user_id = u.id;

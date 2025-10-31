@@ -468,6 +468,17 @@ class ChatbotController extends BaseController {
             
             $this->db->commit();
             
+            // Obtener el ID de la reservación recién creada
+            $reservationId = $this->db->lastInsertId();
+            
+            // Enviar correo de confirmación
+            $this->sendReservationEmailFromChatbot(
+                $data['resource_type'], 
+                $reservationId, 
+                $data['guest_email'], 
+                $data['guest_name']
+            );
+            
             echo json_encode([
                 'success' => true,
                 'message' => 'Reservación creada exitosamente. Te contactaremos pronto para confirmar.'
@@ -476,6 +487,116 @@ class ChatbotController extends BaseController {
             $this->db->rollBack();
             error_log('Chatbot reservation error: ' . $e->getMessage());
             echo json_encode(['success' => false, 'message' => 'Error al crear la reservación: ' . $e->getMessage()]);
+        }
+    }
+    
+    /**
+     * Enviar correo de confirmación de reservación desde el chatbot
+     */
+    private function sendReservationEmailFromChatbot($type, $reservationId, $guestEmail, $guestName) {
+        try {
+            // Cargar vendor autoload para PHPMailer
+            if (file_exists(ROOT_PATH . '/vendor/autoload.php')) {
+                require_once ROOT_PATH . '/vendor/autoload.php';
+            } else {
+                error_log("PHPMailer no está instalado. No se puede enviar correo.");
+                return false;
+            }
+            
+            // Cargar el servicio de email
+            require_once APP_PATH . '/services/EmailService.php';
+            
+            // Obtener los detalles de la reservación
+            $reservationData = $this->getReservationDetailsFromChatbot($type, $reservationId);
+            
+            if (!$reservationData) {
+                error_log("No se encontraron detalles de la reservación ID: $reservationId");
+                return false;
+            }
+            
+            // Agregar información adicional
+            $reservationData['type'] = $type;
+            $reservationData['reservation_id'] = $reservationId;
+            $reservationData['guest_email'] = $guestEmail;
+            $reservationData['guest_name'] = $guestName;
+            
+            // Enviar correo
+            $emailService = new EmailService();
+            $result = $emailService->sendReservationConfirmation($reservationData);
+            
+            if ($result) {
+                error_log("Correo de confirmación enviado exitosamente para reservación #$reservationId (Chatbot)");
+            } else {
+                error_log("No se pudo enviar el correo de confirmación para reservación #$reservationId (Chatbot)");
+            }
+            
+            return $result;
+            
+        } catch (Exception $e) {
+            error_log("Error al enviar correo de confirmación desde chatbot: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Obtener detalles de la reservación según el tipo
+     */
+    private function getReservationDetailsFromChatbot($type, $reservationId) {
+        try {
+            if ($type === 'room') {
+                $stmt = $this->db->prepare("
+                    SELECT 
+                        rr.*,
+                        r.room_number,
+                        rr.check_in as check_in,
+                        rr.check_out as check_out,
+                        rr.total_price
+                    FROM room_reservations rr
+                    JOIN rooms r ON rr.room_id = r.id
+                    WHERE rr.id = ?
+                ");
+                $stmt->execute([$reservationId]);
+                $data = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+            } elseif ($type === 'table') {
+                $stmt = $this->db->prepare("
+                    SELECT 
+                        tr.*,
+                        rt.table_number,
+                        tr.reservation_date,
+                        tr.reservation_time,
+                        tr.party_size
+                    FROM table_reservations tr
+                    JOIN restaurant_tables rt ON tr.table_id = rt.id
+                    WHERE tr.id = ?
+                ");
+                $stmt->execute([$reservationId]);
+                $data = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+            } elseif ($type === 'amenity') {
+                $stmt = $this->db->prepare("
+                    SELECT 
+                        ar.*,
+                        a.name as amenity_name,
+                        ar.reservation_date,
+                        ar.reservation_time,
+                        1 as party_size
+                    FROM amenity_reservations ar
+                    JOIN amenities a ON ar.amenity_id = a.id
+                    WHERE ar.id = ?
+                ");
+                $stmt->execute([$reservationId]);
+                $data = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+            } else {
+                return null;
+            }
+            
+            return $data;
+            
+        } catch (Exception $e) {
+            error_log("Error al obtener detalles de reservación desde chatbot: " . $e->getMessage());
+            return null;
         }
     }
 }

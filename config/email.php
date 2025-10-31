@@ -12,16 +12,22 @@ function getEmailSettings() {
         return $settings;
     }
     
+    // Configuración principal (hardcoded para Rancho Paraíso Real)
+    // TEMPORAL: Usando ressetpassword@ porque reservaciones@ no autentica
     $settings = [
-        'enabled' => false,
-        'host' => 'smtp.gmail.com',
-        'port' => 587,
-        'username' => '',
-        'password' => '',
-        'from_email' => 'noreply@mayorbot.com',
-        'from_name' => 'MajorBot'
+        'enabled' => true,
+        'host' => 'ranchoparaisoreal.com',
+        'port' => 465,
+        'username' => 'ressetpassword@ranchoparaisoreal.com',
+        'password' => 'Danjohn007',
+        'from_email' => 'ressetpassword@ranchoparaisoreal.com',
+        'from_name' => 'Rancho Paraíso Real - Reservaciones',
+        'encryption' => 'ssl'
     ];
     
+    // NOTA: Comentado para usar solo la configuración de arriba
+    // Si quieres usar configuración desde la base de datos, descomenta este bloque:
+    /*
     try {
         require_once __DIR__ . '/database.php';
         $db = Database::getInstance()->getConnection();
@@ -40,16 +46,17 @@ function getEmailSettings() {
         // Fallback to default settings if database query fails
         error_log("Email settings error: " . $e->getMessage());
     }
+    */
     
     return $settings;
 }
 
 // Email configuration constants (can be overridden by database settings)
 define('SMTP_ENABLED', getEmailSettings()['enabled'] ?? false);
-define('SMTP_HOST', getEmailSettings()['host'] ?? 'smtp.gmail.com');
-define('SMTP_PORT', getEmailSettings()['port'] ?? 587);
+define('SMTP_HOST', getEmailSettings()['host'] ?? 'ranchoparaisoreal.com');
+define('SMTP_PORT', getEmailSettings()['port'] ?? 465);
 define('SMTP_USERNAME', getEmailSettings()['username'] ?? '');
 define('SMTP_PASSWORD', getEmailSettings()['password'] ?? '');
-define('SMTP_FROM_EMAIL', getEmailSettings()['from_email'] ?? 'noreply@mayorbot.com');
-define('SMTP_FROM_NAME', getEmailSettings()['from_name'] ?? 'MajorBot');
-define('SMTP_ENCRYPTION', 'tls'); // tls or ssl
+define('SMTP_FROM_EMAIL', getEmailSettings()['from_email'] ?? 'reservaciones@ranchoparaisoreal.com');
+define('SMTP_FROM_NAME', getEmailSettings()['from_name'] ?? 'Rancho Paraíso Real');
+define('SMTP_ENCRYPTION', getEmailSettings()['encryption'] ?? 'ssl'); // tls or ssl

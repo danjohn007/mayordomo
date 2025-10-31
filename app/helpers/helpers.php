@@ -255,6 +255,24 @@ function generateToken($length = 32) {
 }
 
 /**
+ * Generate confirmation PIN code for reservation
+ * Format: YYYYMMDD-ID (e.g., 20251031-1234)
+ * 
+ * @param string $date Date of reservation (check_in for rooms, reservation_date for tables/amenities)
+ * @param int $reservationId ID of the reservation
+ * @return string Confirmation PIN
+ */
+function generateConfirmationPin($date, $reservationId) {
+    // Convertir la fecha a formato YYYYMMDD
+    $dateFormatted = date('Ymd', strtotime($date));
+    
+    // Generar PIN: FECHA-ID
+    $pin = $dateFormatted . '-' . str_pad($reservationId, 4, '0', STR_PAD_LEFT);
+    
+    return $pin;
+}
+
+/**
  * Get setting from global_settings table
  */
 function getSetting($key, $default = null) {
