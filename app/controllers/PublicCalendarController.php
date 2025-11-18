@@ -34,12 +34,27 @@ class PublicCalendarController extends BaseController {
         $stmt->execute([$hotelId]);
         $roomTypes = $stmt->fetchAll(PDO::FETCH_COLUMN);
         
+        // Get contact phone from hotel settings
+        $stmt = $this->db->prepare("
+            SELECT setting_value 
+            FROM hotel_settings 
+            WHERE hotel_id = ? AND setting_key = 'contact_phone'
+        ");
+        $stmt->execute([$hotelId]);
+        $contactPhone = $stmt->fetchColumn();
+        
+        // Default to a fallback number if not set
+        if (empty($contactPhone)) {
+            $contactPhone = '7206212805'; // Default fallback
+        }
+        
         // Render without requiring authentication
         $this->viewPublic('calendar/public', [
             'title' => 'Calendario de Reservaciones - ' . $hotel['name'],
             'hotel' => $hotel,
             'hotelId' => $hotelId,
-            'roomTypes' => $roomTypes
+            'roomTypes' => $roomTypes,
+            'contactPhone' => $contactPhone
         ]);
     }
     

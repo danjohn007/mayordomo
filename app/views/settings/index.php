@@ -50,7 +50,12 @@
                         <h6 class="alert-heading"><i class="bi bi-whatsapp"></i> Integración WhatsApp</h6>
                         <p class="mb-0">
                             El calendario público incluye un botón de WhatsApp que permite a los clientes contactarte directamente 
-                            al número <strong>7206212805</strong> para realizar una reservación. Cuando un cliente selecciona una fecha 
+                            <?php if (!empty($settings['contact_phone'])): ?>
+                                al número <strong><?= e($settings['contact_phone']) ?></strong> 
+                            <?php else: ?>
+                                al número configurado 
+                            <?php endif; ?>
+                            para realizar una reservación. Cuando un cliente selecciona una fecha 
                             disponible, se abre automáticamente WhatsApp con un mensaje prellenado incluyendo la habitación y fecha seleccionada.
                         </p>
                     </div>
@@ -58,6 +63,32 @@
             </div>
             
             <form method="POST" action="<?= BASE_URL ?>/settings/save">
+                <!-- Contact Information -->
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="bi bi-telephone"></i> Información de Contacto</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="contact_phone" class="form-label">
+                                <strong>Teléfono principal de contacto</strong>
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="contact_phone" 
+                                name="contact_phone"
+                                value="<?= e($settings['contact_phone'] ?? '') ?>"
+                                placeholder="Ej: 7206212805"
+                            >
+                            <div class="form-text">
+                                <i class="bi bi-info-circle"></i> Este número se usará en la integración de WhatsApp del Calendario Público de Reservaciones. 
+                                Ingresa el número sin espacios ni caracteres especiales (solo números).
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="card mb-4">
                     <div class="card-header bg-primary text-white">
                         <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Configuración de Reservaciones</h5>
