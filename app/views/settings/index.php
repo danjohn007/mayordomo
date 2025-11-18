@@ -20,6 +20,43 @@
 
     <div class="row">
         <div class="col-lg-8">
+            <!-- Calendario Público -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="bi bi-calendar-heart"></i> Calendario Público de Reservaciones</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">
+                        <i class="bi bi-info-circle"></i> 
+                        Comparte este enlace con tus clientes para que puedan ver la disponibilidad de habitaciones en tiempo real.
+                    </p>
+                    
+                    <?php 
+                    $user = currentUser();
+                    $publicCalendarUrl = BASE_URL . '/public-calendar?hotel_id=' . $user['hotel_id']; 
+                    ?>
+                    
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="publicCalendarUrl" value="<?= $publicCalendarUrl ?>" readonly>
+                        <button class="btn btn-primary" type="button" onclick="copyToClipboard()">
+                            <i class="bi bi-clipboard"></i> Copiar
+                        </button>
+                        <a href="<?= $publicCalendarUrl ?>" target="_blank" class="btn btn-success">
+                            <i class="bi bi-box-arrow-up-right"></i> Ver
+                        </a>
+                    </div>
+                    
+                    <div class="alert alert-success mb-0">
+                        <h6 class="alert-heading"><i class="bi bi-whatsapp"></i> Integración WhatsApp</h6>
+                        <p class="mb-0">
+                            El calendario público incluye un botón de WhatsApp que permite a los clientes contactarte directamente 
+                            al número <strong>7206212805</strong> para realizar una reservación. Cuando un cliente selecciona una fecha 
+                            disponible, se abre automáticamente WhatsApp con un mensaje prellenado incluyendo la habitación y fecha seleccionada.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
             <form method="POST" action="<?= BASE_URL ?>/settings/save">
                 <div class="card mb-4">
                     <div class="card-header bg-primary text-white">
@@ -279,6 +316,31 @@ function editServiceType(id, name, description, icon, sortOrder, isActive) {
     
     var modal = new bootstrap.Modal(document.getElementById('editServiceTypeModal'));
     modal.show();
+}
+
+function copyToClipboard() {
+    const urlInput = document.getElementById('publicCalendarUrl');
+    urlInput.select();
+    urlInput.setSelectionRange(0, 99999); // For mobile devices
+    
+    try {
+        document.execCommand('copy');
+        
+        // Show success feedback
+        const btn = event.target.closest('button');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> ¡Copiado!';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-success');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-primary');
+        }, 2000);
+    } catch (err) {
+        alert('Error al copiar el enlace');
+    }
 }
 </script>
 

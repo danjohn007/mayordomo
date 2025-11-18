@@ -17,7 +17,7 @@ class BaseController {
      */
     protected function checkAuth() {
         // Public routes that don't require authentication
-        $publicRoutes = ['auth', 'test'];
+        $publicRoutes = ['auth', 'test', 'publiccalendar'];
         
         $currentController = strtolower(str_replace('Controller', '', get_class($this)));
         
