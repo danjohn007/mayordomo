@@ -75,9 +75,22 @@
                                 <td><?= $dish['is_available'] ? '<span class="badge bg-success">Sí</span>' : '<span class="badge bg-secondary">No</span>' ?></td>
                                 <td class="action-buttons">
                                     <?php if (hasRole(['admin', 'manager'])): ?>
-                                        <a href="<?= BASE_URL ?>/dishes/edit/<?= $dish['id'] ?>" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
+                                        <a href="<?= BASE_URL ?>/dishes/edit/<?= $dish['id'] ?>" class="btn btn-sm btn-warning" title="Editar"><i class="bi bi-pencil"></i></a>
+                                        
+                                        <form method="POST" action="<?= BASE_URL ?>/dishes/toggleSuspend/<?= $dish['id'] ?>" style="display: inline-block;">
+                                            <?php if (!$dish['is_available']): ?>
+                                                <button type="submit" class="btn btn-sm btn-success" title="Reactivar">
+                                                    <i class="bi bi-play-circle"></i>
+                                                </button>
+                                            <?php else: ?>
+                                                <button type="submit" class="btn btn-sm btn-secondary" title="Suspender">
+                                                    <i class="bi bi-pause-circle"></i>
+                                                </button>
+                                            <?php endif; ?>
+                                        </form>
+                                        
                                         <form method="POST" action="<?= BASE_URL ?>/dishes/delete/<?= $dish['id'] ?>" style="display: inline-block;">
-                                            <button type="submit" class="btn btn-sm btn-danger btn-delete"><i class="bi bi-trash"></i></button>
+                                            <button type="submit" class="btn btn-sm btn-danger btn-delete" title="Eliminar"><i class="bi bi-trash"></i></button>
                                         </form>
                                     <?php endif; ?>
                                 </td>

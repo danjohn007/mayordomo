@@ -103,4 +103,46 @@ class DishesController extends BaseController {
         }
         redirect('dishes');
     }
+    
+    /**
+     * Toggle dish suspension (availability)
+     */
+    public function toggleSuspend($id) {
+        $this->requireRole(['admin', 'manager']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('dishes');
+        }
+        
+        $model = $this->model('Dish');
+        $dish = $model->findById($id);
+        
+        if (!$dish) {
+            flash('error', 'Platillo no encontrado', 'danger');
+            redirect('dishes');
+        }
+        
+        // Toggle availability
+        $newAvailability = $dish['is_available'] ? 0 : 1;
+        
+        $data = [
+            'name' => $dish['name'],
+            'category' => $dish['category'],
+            'price' => $dish['price'],
+            'description' => $dish['description'],
+            'service_time' => $dish['service_time'],
+            'is_available' => $newAvailability
+        ];
+        
+        if ($model->update($id, $data)) {
+            $message = $newAvailability 
+                ? 'Platillo reactivado exitosamente' 
+                : 'Platillo suspendido exitosamente';
+            flash('success', $message, 'success');
+        } else {
+            flash('error', 'Error al cambiar el estado del platillo', 'danger');
+        }
+        
+        redirect('dishes');
+    }
 }

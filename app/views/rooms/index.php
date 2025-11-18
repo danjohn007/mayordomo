@@ -123,6 +123,19 @@
                                            class="btn btn-sm btn-warning" title="Editar">
                                             <i class="bi bi-pencil"></i>
                                         </a>
+                                        
+                                        <form method="POST" action="<?= BASE_URL ?>/rooms/toggleSuspend/<?= $room['id'] ?>" 
+                                              style="display: inline-block;">
+                                            <?php if ($room['status'] === 'maintenance'): ?>
+                                                <button type="submit" class="btn btn-sm btn-success" title="Reactivar">
+                                                    <i class="bi bi-play-circle"></i>
+                                                </button>
+                                            <?php else: ?>
+                                                <button type="submit" class="btn btn-sm btn-secondary" title="Suspender">
+                                                    <i class="bi bi-pause-circle"></i>
+                                                </button>
+                                            <?php endif; ?>
+                                        </form>
                                     <?php endif; ?>
                                     
                                     <?php if (hasRole(['admin'])): ?>
