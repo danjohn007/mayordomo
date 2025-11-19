@@ -523,6 +523,10 @@ class ChatbotController extends BaseController {
             // Obtener hotel_id de la reservación
             $hotelId = $reservationData['hotel_id'] ?? null;
             
+            // Log para debugging
+            error_log("Chatbot: Enviando correo para reservación ID: $reservationId, Hotel ID: " . ($hotelId ?? 'NULL'));
+            error_log("Chatbot: Email destinatario: $guestEmail");
+            
             // Enviar correo
             $emailService = new EmailService($hotelId);
             $result = $emailService->sendReservationConfirmation($reservationData);

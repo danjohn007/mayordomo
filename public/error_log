@@ -1,0 +1,38 @@
+[19-Nov-2025 07:07:28 America/Mexico_City] Calendar getEvents: start=2025-10-26T00:00:00-06:00, end=2025-12-07T00:00:00-06:00, hotelId=6
+[19-Nov-2025 07:07:28 America/Mexico_City] Calendar: Found 24 room reservations
+[19-Nov-2025 07:07:28 America/Mexico_City] Calendar: Found 9 table reservations
+[19-Nov-2025 07:07:28 America/Mexico_City] Calendar: Found 9 amenity reservations
+[19-Nov-2025 07:07:28 America/Mexico_City] Calendar: Found 1 service requests
+[19-Nov-2025 07:07:28 America/Mexico_City] Calendar: Total events to return: 43
+[19-Nov-2025 07:09:31 America/Mexico_City] === INICIO envío de correo ===
+[19-Nov-2025 07:09:31 America/Mexico_City] Type: room, ID: 107, Email: dan@impactosdigitales.com, Name: Dan Raso Ríos
+[19-Nov-2025 07:09:31 America/Mexico_City] Include PIN: NO
+[19-Nov-2025 07:09:31 America/Mexico_City] ERROR: PHPMailer no está instalado. No se puede enviar correo.
+[19-Nov-2025 15:03:20 America/Mexico_City] === INICIO envío de correo ===
+[19-Nov-2025 15:03:20 America/Mexico_City] Type: amenity, ID: 88, Email: danielhrzz970@gmail.com, Name: Oscar Mota
+[19-Nov-2025 15:03:20 America/Mexico_City] Include PIN: NO
+[19-Nov-2025 15:03:20 America/Mexico_City] PHPMailer autoload cargado correctamente
+[19-Nov-2025 15:03:20 America/Mexico_City] Obteniendo detalles de la reservación...
+[19-Nov-2025 15:03:20 America/Mexico_City] Detalles obtenidos: {"id":88,"hotel_id":6,"amenity_id":25,"guest_name":"Oscar Mota","guest_email":"danielhrzz970@gmail.com","guest_phone":"4426133306","user_id":49,"reservation_date":"2025-11-28","reservation_time":"20:03:00","duration":60,"party_size":1,"status":"pending","notes":"Mojarra","special_requests":null,"confirmation_code":"20251128-0088","notification_sent":0,"created_at":"2025-11-19 15:03:20","updated_at":"2025-11-19 15:03:20","guest_birthday":null,"amenity_name":"Venta de Mojarras Vivas"}
+[19-Nov-2025 15:03:20 America/Mexico_City] Inicializando EmailService con hotel_id: 6
+[19-Nov-2025 15:03:20 America/Mexico_City] SMTP settings loaded from hotel_settings for hotel_id: 6
+[19-Nov-2025 15:03:20 America/Mexico_City] PHP Warning:  include(/home2/ranchoparaisorea/public_html/majorbot/11/vendor/composer/../../phpmailer/phpmailer/src/PHPMailer.php): Failed to open stream: No such file or directory in /home2/ranchoparaisorea/public_html/majorbot/11/vendor/composer/ClassLoader.php on line 310
+[19-Nov-2025 15:03:20 America/Mexico_City] PHP Warning:  include(): Failed opening '/home2/ranchoparaisorea/public_html/majorbot/11/vendor/composer/../../phpmailer/phpmailer/src/PHPMailer.php' for inclusion (include_path='.:/opt/cpanel/ea-php83/root/usr/share/pear') in /home2/ranchoparaisorea/public_html/majorbot/11/vendor/composer/ClassLoader.php on line 310
+[19-Nov-2025 15:03:20 America/Mexico_City] PHP Fatal error:  Uncaught Error: Class "PHPMailer\PHPMailer\PHPMailer" not found in /home2/ranchoparaisorea/public_html/majorbot/11/app/services/EmailService.php:21
+Stack trace:
+#0 /home2/ranchoparaisorea/public_html/majorbot/11/app/controllers/ReservationsController.php(696): EmailService->__construct(6)
+#1 /home2/ranchoparaisorea/public_html/majorbot/11/app/controllers/ReservationsController.php(439): ReservationsController->sendReservationEmail('amenity', '88', 'danielhrzz970@g...', 'Oscar Mota')
+#2 /home2/ranchoparaisorea/public_html/majorbot/11/public/index.php(41): ReservationsController->store()
+#3 {main}
+  thrown in /home2/ranchoparaisorea/public_html/majorbot/11/app/services/EmailService.php on line 21
+[19-Nov-2025 15:33:46 America/Mexico_City] === INICIO envío de correo ===
+[19-Nov-2025 15:33:46 America/Mexico_City] Type: amenity, ID: 91, Email: danielhrzz970@gmail.com, Name: Oscar Mota
+[19-Nov-2025 15:33:46 America/Mexico_City] Include PIN: NO
+[19-Nov-2025 15:33:46 America/Mexico_City] PHPMailer autoload cargado correctamente
+[19-Nov-2025 15:33:46 America/Mexico_City] Obteniendo detalles de la reservación...
+[19-Nov-2025 15:33:46 America/Mexico_City] Detalles obtenidos: {"id":91,"hotel_id":6,"amenity_id":21,"guest_name":"Oscar Mota","guest_email":"danielhrzz970@gmail.com","guest_phone":"4426133306","user_id":49,"reservation_date":"2025-11-25","reservation_time":"15:39:00","duration":60,"party_size":1,"status":"pending","notes":"Ojala se mande xd","special_requests":null,"confirmation_code":"20251125-0091","notification_sent":0,"created_at":"2025-11-19 15:33:46","updated_at":"2025-11-19 15:33:46","guest_birthday":null,"amenity_name":"Temazcal"}
+[19-Nov-2025 15:33:46 America/Mexico_City] Inicializando EmailService con hotel_id: 6
+[19-Nov-2025 15:33:46 America/Mexico_City] Enviando correo de confirmación...
+[19-Nov-2025 15:33:46 America/Mexico_City] Correo de confirmación enviado exitosamente a: danielhrzz970@gmail.com
+[19-Nov-2025 15:33:46 America/Mexico_City] ✅ Correo de confirmación enviado exitosamente para reservación #91
+[19-Nov-2025 15:33:46 America/Mexico_City] === FIN envío de correo ===
