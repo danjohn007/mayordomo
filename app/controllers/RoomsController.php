@@ -360,4 +360,37 @@ class RoomsController extends BaseController {
         header('Location: ' . $referer);
         exit;
     }
+    
+    /**
+     * Toggle room suspension (maintenance status)
+     */
+    public function toggleSuspend($id) {
+        $this->requireRole(['admin', 'manager']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('rooms');
+        }
+        
+        $roomModel = $this->model('Room');
+        $room = $roomModel->findById($id);
+        
+        if (!$room) {
+            flash('error', 'Habitación no encontrada', 'danger');
+            redirect('rooms');
+        }
+        
+        // Toggle between maintenance and available
+        $newStatus = ($room['status'] === 'maintenance') ? 'available' : 'maintenance';
+        
+        if ($roomModel->updateStatus($id, $newStatus)) {
+            $message = ($newStatus === 'maintenance') 
+                ? 'Habitación suspendida exitosamente' 
+                : 'Habitación reactivada exitosamente';
+            flash('success', $message, 'success');
+        } else {
+            flash('error', 'Error al cambiar el estado de la habitación', 'danger');
+        }
+        
+        redirect('rooms');
+    }
 }

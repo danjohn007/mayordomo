@@ -153,6 +153,10 @@ class SettingsController extends BaseController {
             $allowRoomOverlap = isset($_POST['allow_room_overlap']) ? 1 : 0;
             $this->saveSetting($hotelId, 'allow_room_overlap', $allowRoomOverlap, 'boolean', 'reservations');
             
+            // Save contact phone setting
+            $contactPhone = sanitize($_POST['contact_phone'] ?? '');
+            $this->saveSetting($hotelId, 'contact_phone', $contactPhone, 'string', 'general');
+            
             $this->db->commit();
             
             flash('success', 'Configuraciones guardadas exitosamente', 'success');

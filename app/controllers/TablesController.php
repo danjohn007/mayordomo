@@ -222,4 +222,45 @@ class TablesController extends BaseController {
         header('Location: ' . $referer);
         exit;
     }
+    
+    /**
+     * Toggle table suspension (blocked status)
+     */
+    public function toggleSuspend($id) {
+        $this->requireRole(['admin', 'manager']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('tables');
+        }
+        
+        $model = $this->model('RestaurantTable');
+        $table = $model->findById($id);
+        
+        if (!$table) {
+            flash('error', 'Mesa no encontrada', 'danger');
+            redirect('tables');
+        }
+        
+        // Toggle between blocked and available
+        $newStatus = ($table['status'] === 'blocked') ? 'available' : 'blocked';
+        
+        $data = [
+            'table_number' => $table['table_number'],
+            'capacity' => $table['capacity'],
+            'location' => $table['location'],
+            'status' => $newStatus,
+            'description' => $table['description']
+        ];
+        
+        if ($model->update($id, $data)) {
+            $message = ($newStatus === 'blocked') 
+                ? 'Mesa suspendida exitosamente' 
+                : 'Mesa reactivada exitosamente';
+            flash('success', $message, 'success');
+        } else {
+            flash('error', 'Error al cambiar el estado de la mesa', 'danger');
+        }
+        
+        redirect('tables');
+    }
 }

@@ -233,4 +233,51 @@ class AmenitiesController extends BaseController {
         header('Location: ' . $referer);
         exit;
     }
+    
+    /**
+     * Toggle amenity suspension (availability)
+     */
+    public function toggleSuspend($id) {
+        $this->requireRole(['admin', 'manager']);
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            redirect('amenities');
+        }
+        
+        $model = $this->model('Amenity');
+        $amenity = $model->findById($id);
+        
+        if (!$amenity) {
+            flash('error', 'Amenidad no encontrada', 'danger');
+            redirect('amenities');
+        }
+        
+        // Toggle availability
+        $newAvailability = $amenity['is_available'] ? 0 : 1;
+        
+        $data = [
+            'name' => $amenity['name'],
+            'category' => $amenity['category'],
+            'price' => $amenity['price'],
+            'capacity' => $amenity['capacity'],
+            'opening_time' => $amenity['opening_time'],
+            'closing_time' => $amenity['closing_time'],
+            'description' => $amenity['description'],
+            'is_available' => $newAvailability,
+            'allow_overlap' => $amenity['allow_overlap'],
+            'max_reservations' => $amenity['max_reservations'],
+            'block_duration_hours' => $amenity['block_duration_hours']
+        ];
+        
+        if ($model->update($id, $data)) {
+            $message = $newAvailability 
+                ? 'Amenidad reactivada exitosamente' 
+                : 'Amenidad suspendida exitosamente';
+            flash('success', $message, 'success');
+        } else {
+            flash('error', 'Error al cambiar el estado de la amenidad', 'danger');
+        }
+        
+        redirect('amenities');
+    }
 }

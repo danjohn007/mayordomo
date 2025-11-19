@@ -330,7 +330,7 @@
     <script>
         const hotelId = <?= $hotelId ?>;
         const baseUrl = '<?= BASE_URL ?>';
-        const whatsappNumber = '5217206212805'; // Format: country code + number
+        const whatsappNumber = '521<?= e($contactPhone ?? '7206212805') ?>'; // Format: country code + number
         const whatsappMessage = 'Me interesa hacer una reservación';
         
         let currentDate = new Date();
