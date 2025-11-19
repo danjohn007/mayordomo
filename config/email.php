@@ -28,7 +28,7 @@ function getEmailSettings($hotelId = null) {
     // Default configuration (fallback)
     $settings[$cacheKey] = [
         'enabled' => true,
-        'host' => 'ranchoparaisoreal.com',
+        'host' => 'mail.ranchoparaisoreal.com',
         'port' => 465,
         'username' => 'reservaciones@ranchoparaisoreal.com',
         'password' => 'Danjohn007',
@@ -84,7 +84,7 @@ function getEmailSettings($hotelId = null) {
 
 // Email configuration constants (can be overridden by database settings)
 define('SMTP_ENABLED', getEmailSettings()['enabled'] ?? false);
-define('SMTP_HOST', getEmailSettings()['host'] ?? 'ranchoparaisoreal.com');
+define('SMTP_HOST', getEmailSettings()['host'] ?? 'mail.ranchoparaisoreal.com');
 define('SMTP_PORT', getEmailSettings()['port'] ?? 465);
 define('SMTP_USERNAME', getEmailSettings()['username'] ?? '');
 define('SMTP_PASSWORD', getEmailSettings()['password'] ?? '');

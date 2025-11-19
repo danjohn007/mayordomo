@@ -24,7 +24,7 @@ class PasswordResetEmailService {
         try {
             // NOTA: Cuenta específica para reset: ressetpassword@ (con doble 's')
             $this->mailer->isSMTP();
-            $this->mailer->Host = 'ranchoparaisoreal.com';
+            $this->mailer->Host = 'mail.ranchoparaisoreal.com';
             $this->mailer->SMTPAuth = true;
             $this->mailer->Username = 'ressetpassword@ranchoparaisoreal.com';
             $this->mailer->Password = 'Danjohn007';

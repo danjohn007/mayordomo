@@ -64,11 +64,11 @@ Comportamiento:
 Los valores predeterminados configurados son:
 
 ```
-Servidor SMTP: ranchoparaisoreal.com
+Servidor SMTP: mail.ranchoparaisoreal.com
 Puerto: 465
 Encriptación: SSL
 Usuario: reservaciones@ranchoparaisoreal.com
-Contraseña: Danjohn007!
+Contraseña: Danjohn007
 Correo Remitente: reservaciones@ranchoparaisoreal.com
 Nombre Remitente: Rancho Paraíso Real - Reservaciones
 ```
