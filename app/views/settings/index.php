@@ -88,6 +88,165 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- SMTP Configuration -->
+                <div class="card mb-4">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0"><i class="bi bi-envelope-at"></i> Configuración SMTP del Correo</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3">
+                            Configura el servidor SMTP para enviar notificaciones de reservaciones y emails del sistema.
+                        </p>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input 
+                                class="form-check-input" 
+                                type="checkbox" 
+                                id="smtp_enabled" 
+                                name="smtp_enabled"
+                                value="1"
+                                <?= isset($settings['smtp_enabled']) && $settings['smtp_enabled'] ? 'checked' : '' ?>
+                            >
+                            <label class="form-check-label" for="smtp_enabled">
+                                <strong>Habilitar envío de correos SMTP</strong>
+                            </label>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="smtp_host" class="form-label">
+                                    <strong>Servidor SMTP (Host)</strong>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    class="form-control" 
+                                    id="smtp_host" 
+                                    name="smtp_host"
+                                    value="<?= e($settings['smtp_host'] ?? 'ranchoparaisoreal.com') ?>"
+                                    placeholder="Ej: ranchoparaisoreal.com"
+                                >
+                                <div class="form-text">
+                                    Servidor de correo saliente (SMTP)
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <label for="smtp_port" class="form-label">
+                                    <strong>Puerto SMTP</strong>
+                                </label>
+                                <input 
+                                    type="number" 
+                                    class="form-control" 
+                                    id="smtp_port" 
+                                    name="smtp_port"
+                                    value="<?= e($settings['smtp_port'] ?? '465') ?>"
+                                    placeholder="465"
+                                >
+                                <div class="form-text">
+                                    Puerto: 465 (SSL) o 587 (TLS)
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <label for="smtp_encryption" class="form-label">
+                                    <strong>Encriptación</strong>
+                                </label>
+                                <select class="form-select" id="smtp_encryption" name="smtp_encryption">
+                                    <option value="ssl" <?= isset($settings['smtp_encryption']) && $settings['smtp_encryption'] === 'ssl' ? 'selected' : '' ?>>SSL</option>
+                                    <option value="tls" <?= isset($settings['smtp_encryption']) && $settings['smtp_encryption'] === 'tls' ? 'selected' : '' ?>>TLS</option>
+                                </select>
+                                <div class="form-text">
+                                    Tipo de seguridad
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="smtp_username" class="form-label">
+                                    <strong>Usuario SMTP</strong>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    class="form-control" 
+                                    id="smtp_username" 
+                                    name="smtp_username"
+                                    value="<?= e($settings['smtp_username'] ?? 'reservaciones@ranchoparaisoreal.com') ?>"
+                                    placeholder="correo@dominio.com"
+                                    autocomplete="off"
+                                >
+                                <div class="form-text">
+                                    Usuario para autenticación SMTP
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="smtp_password" class="form-label">
+                                    <strong>Contraseña SMTP</strong>
+                                </label>
+                                <input 
+                                    type="password" 
+                                    class="form-control" 
+                                    id="smtp_password" 
+                                    name="smtp_password"
+                                    value="<?= e($settings['smtp_password'] ?? '') ?>"
+                                    placeholder="Contraseña del correo"
+                                    autocomplete="new-password"
+                                >
+                                <div class="form-text">
+                                    Contraseña del correo electrónico
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="smtp_from_email" class="form-label">
+                                    <strong>Correo del Remitente</strong>
+                                </label>
+                                <input 
+                                    type="email" 
+                                    class="form-control" 
+                                    id="smtp_from_email" 
+                                    name="smtp_from_email"
+                                    value="<?= e($settings['smtp_from_email'] ?? 'reservaciones@ranchoparaisoreal.com') ?>"
+                                    placeholder="reservaciones@ranchoparaisoreal.com"
+                                >
+                                <div class="form-text">
+                                    Dirección de correo que aparecerá como remitente
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="smtp_from_name" class="form-label">
+                                    <strong>Nombre del Remitente</strong>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    class="form-control" 
+                                    id="smtp_from_name" 
+                                    name="smtp_from_name"
+                                    value="<?= e($settings['smtp_from_name'] ?? 'Rancho Paraíso Real - Reservaciones') ?>"
+                                    placeholder="Rancho Paraíso Real"
+                                >
+                                <div class="form-text">
+                                    Nombre que aparecerá como remitente
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info mb-0">
+                            <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Información sobre la configuración SMTP:</h6>
+                            <ul class="mb-0">
+                                <li><strong>Puerto 465:</strong> Usa SSL (Secure Sockets Layer)</li>
+                                <li><strong>Puerto 587:</strong> Usa TLS (Transport Layer Security)</li>
+                                <li><strong>Puerto 993 (IMAP):</strong> Solo para recibir correos (no es necesario configurarlo aquí)</li>
+                                <li>Esta configuración se utiliza para enviar notificaciones de reservaciones y correos del sistema</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
                 
                 <div class="card mb-4">
                     <div class="card-header bg-primary text-white">

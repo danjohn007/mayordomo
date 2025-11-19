@@ -13,10 +13,10 @@ class EmailService {
     private $mailer;
     private $config;
     
-    public function __construct() {
+    public function __construct($hotelId = null) {
         require_once CONFIG_PATH . '/email.php';
         
-        $this->config = getEmailSettings();
+        $this->config = getEmailSettings($hotelId);
         $this->mailer = new PHPMailer(true);
         
         // Configurar SMTP
@@ -28,14 +28,14 @@ class EmailService {
      */
     private function setupSMTP() {
         try {
-            // Configuración del servidor
+            // Configuración del servidor usando valores del config
             $this->mailer->isSMTP();
-            $this->mailer->Host = SMTP_HOST;
+            $this->mailer->Host = $this->config['host'];
             $this->mailer->SMTPAuth = true;
-            $this->mailer->Username = SMTP_USERNAME;
-            $this->mailer->Password = SMTP_PASSWORD;
-            $this->mailer->SMTPSecure = SMTP_ENCRYPTION;
-            $this->mailer->Port = SMTP_PORT;
+            $this->mailer->Username = $this->config['username'];
+            $this->mailer->Password = $this->config['password'];
+            $this->mailer->SMTPSecure = $this->config['encryption'];
+            $this->mailer->Port = $this->config['port'];
             
             // Configuración adicional
             $this->mailer->CharSet = 'UTF-8';
@@ -46,7 +46,7 @@ class EmailService {
             // $this->mailer->Debugoutput = 'html';
             
             // Remitente por defecto
-            $this->mailer->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+            $this->mailer->setFrom($this->config['from_email'], $this->config['from_name']);
             
         } catch (Exception $e) {
             error_log("Error al configurar SMTP: " . $e->getMessage());
@@ -61,7 +61,7 @@ class EmailService {
      * @return bool
      */
     public function sendReservationConfirmation($reservationData) {
-        if (!SMTP_ENABLED) {
+        if (!$this->config['enabled']) {
             error_log("Email no enviado - SMTP está deshabilitado");
             return false;
         }
@@ -358,7 +358,7 @@ class EmailService {
      * @return bool
      */
     public function sendEmail($to, $subject, $body, $altBody = '') {
-        if (!SMTP_ENABLED) {
+        if (!$this->config['enabled']) {
             error_log("Email no enviado - SMTP está deshabilitado");
             return false;
         }
