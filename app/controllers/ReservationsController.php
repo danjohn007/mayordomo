@@ -684,9 +684,13 @@ class ReservationsController extends BaseController {
             $reservationData['guest_name'] = $guestName;
             $reservationData['include_pin'] = $includePin;
             
+            // Obtener hotel_id del usuario actual
+            $currentUser = currentUser();
+            $hotelId = $currentUser['hotel_id'] ?? null;
+            
             // Enviar correo
-            logEmail("Inicializando EmailService...");
-            $emailService = new EmailService();
+            logEmail("Inicializando EmailService con hotel_id: " . ($hotelId ?? 'NULL'));
+            $emailService = new EmailService($hotelId);
             
             logEmail("Enviando correo de confirmación...");
             $result = $emailService->sendReservationConfirmation($reservationData);

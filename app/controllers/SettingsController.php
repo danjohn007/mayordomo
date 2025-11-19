@@ -157,6 +157,31 @@ class SettingsController extends BaseController {
             $contactPhone = sanitize($_POST['contact_phone'] ?? '');
             $this->saveSetting($hotelId, 'contact_phone', $contactPhone, 'string', 'general');
             
+            // Save SMTP settings
+            $smtpEnabled = isset($_POST['smtp_enabled']) ? 1 : 0;
+            $this->saveSetting($hotelId, 'smtp_enabled', $smtpEnabled, 'boolean', 'email');
+            
+            $smtpHost = sanitize($_POST['smtp_host'] ?? '');
+            $this->saveSetting($hotelId, 'smtp_host', $smtpHost, 'string', 'email');
+            
+            $smtpPort = intval($_POST['smtp_port'] ?? 465);
+            $this->saveSetting($hotelId, 'smtp_port', $smtpPort, 'number', 'email');
+            
+            $smtpUsername = sanitize($_POST['smtp_username'] ?? '');
+            $this->saveSetting($hotelId, 'smtp_username', $smtpUsername, 'string', 'email');
+            
+            $smtpPassword = $_POST['smtp_password'] ?? ''; // Don't sanitize password to preserve special characters
+            $this->saveSetting($hotelId, 'smtp_password', $smtpPassword, 'string', 'email');
+            
+            $smtpEncryption = sanitize($_POST['smtp_encryption'] ?? 'ssl');
+            $this->saveSetting($hotelId, 'smtp_encryption', $smtpEncryption, 'string', 'email');
+            
+            $smtpFromEmail = sanitize($_POST['smtp_from_email'] ?? '');
+            $this->saveSetting($hotelId, 'smtp_from_email', $smtpFromEmail, 'string', 'email');
+            
+            $smtpFromName = sanitize($_POST['smtp_from_name'] ?? '');
+            $this->saveSetting($hotelId, 'smtp_from_name', $smtpFromName, 'string', 'email');
+            
             $this->db->commit();
             
             flash('success', 'Configuraciones guardadas exitosamente', 'success');

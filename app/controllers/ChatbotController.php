@@ -520,8 +520,11 @@ class ChatbotController extends BaseController {
             $reservationData['guest_email'] = $guestEmail;
             $reservationData['guest_name'] = $guestName;
             
+            // Obtener hotel_id de la reservación
+            $hotelId = $reservationData['hotel_id'] ?? null;
+            
             // Enviar correo
-            $emailService = new EmailService();
+            $emailService = new EmailService($hotelId);
             $result = $emailService->sendReservationConfirmation($reservationData);
             
             if ($result) {
