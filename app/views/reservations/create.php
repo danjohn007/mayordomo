@@ -70,8 +70,25 @@
 
                     <hr>
 
-                    <!-- Tipo de Reservación -->
+                    <!-- Detalles de Reservación -->
                     <h5 class="mb-3"><i class="bi bi-calendar-check"></i> Detalles de Reservación</h5>
+                    
+                    <!-- Fechas Check-in/Check-out (para habitaciones) -->
+                    <div id="room_dates_early" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="check_in_early" class="form-label">Check-in *</label>
+                                <input type="date" class="form-control" id="check_in_early" name="check_in">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="check_out_early" class="form-label">Check-out *</label>
+                                <input type="date" class="form-control" id="check_out_early" name="check_out">
+                            </div>
+                        </div>
+                        <div id="availability_message" class="alert" style="display: none;"></div>
+                    </div>
+                    
+                    <!-- Tipo de Reservación -->
                     <div class="mb-4">
                         <label for="reservation_type" class="form-label"><strong>Tipo de Reservación *</strong></label>
                         <select class="form-select form-select-lg" id="reservation_type" name="reservation_type" required>
@@ -100,20 +117,8 @@
                         <small class="text-muted">Seleccione una o más habitaciones para la reservación</small>
                     </div>
 
-                    <!-- Para Habitaciones -->
-                    <div id="room_dates" style="display: none;">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="check_in" class="form-label">Check-in *</label>
-                                <input type="date" class="form-control" id="check_in" name="check_in">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="check_out" class="form-label">Check-out *</label>
-                                <input type="date" class="form-control" id="check_out" name="check_out">
-                            </div>
-                        </div>
-                        
-                        <!-- Código de Descuento -->
+                    <!-- Código de Descuento -->
+                    <div id="discount_section" style="display: none;">
                         <div class="mb-3">
                             <label for="discount_code" class="form-label">Código de Descuento (Opcional)</label>
                             <div class="input-group">
@@ -204,10 +209,10 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const reservationType = document.getElementById('reservation_type');
-    const resourceSection = document.getElementById('resource_section');
     const resourceSelect = document.getElementById('resource_id');
     const resourceHelp = document.getElementById('resource_help');
-    const roomDates = document.getElementById('room_dates');
+    const roomDatesEarly = document.getElementById('room_dates_early');
+    const discountSection = document.getElementById('discount_section');
     const tableAmenityDates = document.getElementById('table_amenity_dates');
     const partySizeSection = document.getElementById('party_size_section');
     const guestTypeRadios = document.querySelectorAll('input[name="guest_type"]');
@@ -216,71 +221,257 @@ document.addEventListener('DOMContentLoaded', function() {
     const guestSearch = document.getElementById('guest_search');
     const guestResults = document.getElementById('guest_results');
     const guestIdInput = document.getElementById('guest_id');
+    const checkInEarly = document.getElementById('check_in_early');
+    const checkOutEarly = document.getElementById('check_out_early');
+    const availabilityMessage = document.getElementById('availability_message');
 
     // Get references to both resource sections
     const resourceSectionSingle = document.getElementById('resource_section_single');
     const resourceSectionMultiple = document.getElementById('resource_section_multiple');
     const roomsCheckboxes = document.getElementById('rooms_checkboxes');
     
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    if (checkInEarly) {
+        checkInEarly.min = today;
+    }
+    if (checkOutEarly) {
+        checkOutEarly.min = today;
+    }
+    
+    // Handle check-in date change
+    if (checkInEarly) {
+        checkInEarly.addEventListener('change', function() {
+            if (checkOutEarly) {
+                checkOutEarly.min = this.value;
+                if (checkOutEarly.value && checkOutEarly.value <= this.value) {
+                    checkOutEarly.value = '';
+                }
+            }
+            checkRoomAvailability();
+        });
+    }
+    
+    // Handle check-out date change
+    if (checkOutEarly) {
+        checkOutEarly.addEventListener('change', function() {
+            checkRoomAvailability();
+        });
+    }
+    
+    // Function to check room availability
+    function checkRoomAvailability() {
+        if (!checkInEarly || !checkOutEarly) return;
+        
+        const checkIn = checkInEarly.value;
+        const checkOut = checkOutEarly.value;
+        
+        if (!checkIn || !checkOut) {
+            availabilityMessage.style.display = 'none';
+            return;
+        }
+        
+        // Show loading message
+        availabilityMessage.className = 'alert alert-info';
+        availabilityMessage.textContent = 'Verificando disponibilidad...';
+        availabilityMessage.style.display = 'block';
+        
+        // Check if room type is selected
+        if (reservationType.value === 'room') {
+            loadResourcesWithDates('room', checkIn, checkOut);
+        }
+    }
+    
     // Handle reservation type change
     reservationType.addEventListener('change', function() {
         const type = this.value;
         
-        // Show/hide appropriate resource section
+        // Show/hide appropriate sections
         if (type === 'room') {
             resourceSectionSingle.style.display = 'none';
             resourceSectionMultiple.style.display = 'block';
-            roomDates.style.display = 'block';
+            roomDatesEarly.style.display = 'block';
+            discountSection.style.display = 'block';
             tableAmenityDates.style.display = 'none';
             partySizeSection.style.display = 'none';
-            document.getElementById('check_in').required = true;
-            document.getElementById('check_out').required = true;
+            if (checkInEarly) checkInEarly.required = true;
+            if (checkOutEarly) checkOutEarly.required = true;
             document.getElementById('reservation_date').required = false;
             document.getElementById('reservation_time').required = false;
-            // Remove required attribute from resource_id when room type is selected
             resourceSelect.required = false;
+            
+            // Load rooms with availability if dates are selected
+            const checkIn = checkInEarly ? checkInEarly.value : '';
+            const checkOut = checkOutEarly ? checkOutEarly.value : '';
+            if (checkIn && checkOut) {
+                loadResourcesWithDates('room', checkIn, checkOut);
+            } else {
+                loadResources('room');
+            }
         } else if (type === 'table') {
             resourceSectionSingle.style.display = 'block';
             resourceSectionMultiple.style.display = 'none';
-            roomDates.style.display = 'none';
+            roomDatesEarly.style.display = 'none';
+            discountSection.style.display = 'none';
             tableAmenityDates.style.display = 'block';
             partySizeSection.style.display = 'block';
             resourceHelp.textContent = 'Seleccione una mesa disponible';
-            document.getElementById('check_in').required = false;
-            document.getElementById('check_out').required = false;
+            if (checkInEarly) checkInEarly.required = false;
+            if (checkOutEarly) checkOutEarly.required = false;
             document.getElementById('reservation_date').required = true;
             document.getElementById('reservation_time').required = true;
             document.getElementById('party_size').required = true;
-            // Add required attribute for table reservations
             resourceSelect.required = true;
             resourceSelect.innerHTML = '<option value="">Cargando recursos...</option>';
+            loadResources('table');
         } else if (type === 'amenity') {
             resourceSectionSingle.style.display = 'block';
             resourceSectionMultiple.style.display = 'none';
-            roomDates.style.display = 'none';
+            roomDatesEarly.style.display = 'none';
+            discountSection.style.display = 'none';
             tableAmenityDates.style.display = 'block';
             partySizeSection.style.display = 'block';
             resourceHelp.textContent = 'Seleccione una amenidad disponible';
-            document.getElementById('check_in').required = false;
-            document.getElementById('check_out').required = false;
+            if (checkInEarly) checkInEarly.required = false;
+            if (checkOutEarly) checkOutEarly.required = false;
             document.getElementById('reservation_date').required = true;
             document.getElementById('reservation_time').required = true;
             document.getElementById('party_size').required = true;
-            // Add required attribute for amenity reservations
             resourceSelect.required = true;
             resourceSelect.innerHTML = '<option value="">Cargando recursos...</option>';
+            loadResources('amenity');
         } else {
             resourceSectionSingle.style.display = 'none';
             resourceSectionMultiple.style.display = 'none';
-            // Remove required attribute when no type is selected
+            roomDatesEarly.style.display = 'none';
+            discountSection.style.display = 'none';
             resourceSelect.required = false;
         }
-        
-        // Load resources via AJAX
-        if (type) {
-            loadResources(type);
-        }
     });
+
+    // Load resources with date availability checking
+    function loadResourcesWithDates(type, checkIn, checkOut) {
+        const url = '<?= BASE_URL ?>/public/api/get_resources.php?type=' + type + 
+                    '&check_in=' + encodeURIComponent(checkIn) + 
+                    '&check_out=' + encodeURIComponent(checkOut);
+        
+        fetch(url, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Availability API Response:', data);
+            
+            if (data.success) {
+                if (data.resources && data.resources.length > 0) {
+                    const availableCount = data.resources.filter(r => r.available).length;
+                    
+                    if (availableCount > 0) {
+                        availabilityMessage.className = 'alert alert-success';
+                        availabilityMessage.textContent = `✓ ${availableCount} habitación(es) disponible(s) para las fechas seleccionadas`;
+                    } else {
+                        availabilityMessage.className = 'alert alert-warning';
+                        availabilityMessage.textContent = '⚠ No hay habitaciones disponibles para estas fechas';
+                    }
+                    availabilityMessage.style.display = 'block';
+                    
+                    // Display rooms with availability status
+                    displayRoomsWithAvailability(data.resources);
+                } else {
+                    availabilityMessage.className = 'alert alert-info';
+                    availabilityMessage.textContent = 'No hay habitaciones en el sistema';
+                    availabilityMessage.style.display = 'block';
+                    roomsCheckboxes.innerHTML = '<p class="text-muted">No hay habitaciones disponibles</p>';
+                }
+            } else {
+                availabilityMessage.className = 'alert alert-danger';
+                availabilityMessage.textContent = 'Error al verificar disponibilidad: ' + (data.message || 'Error desconocido');
+                availabilityMessage.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error checking availability:', error);
+            availabilityMessage.className = 'alert alert-danger';
+            availabilityMessage.textContent = 'Error de conexión al verificar disponibilidad';
+            availabilityMessage.style.display = 'block';
+        });
+    }
+    
+    // Display rooms with availability status
+    function displayRoomsWithAvailability(resources) {
+        let html = '';
+        resources.forEach(resource => {
+            const isAvailable = resource.available !== false;
+            const statusBadge = isAvailable ? 
+                '<span class="badge bg-success ms-2">Disponible</span>' : 
+                '<span class="badge bg-danger ms-2">No Disponible</span>';
+            const disabledAttr = !isAvailable ? 'disabled' : '';
+            const cardOpacity = !isAvailable ? 'style="opacity: 0.6;"' : '';
+                
+            html += `
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card resource-card h-100" ${cardOpacity} data-resource-id="${resource.id}">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="card-title mb-0">
+                                    <i class="bi bi-door-closed text-primary"></i>
+                                    Habitación ${resource.room_number}
+                                </h6>
+                                <div class="form-check">
+                                    <input class="form-check-input room-checkbox" type="checkbox" 
+                                           name="room_ids[]" value="${resource.id}" 
+                                           id="room_${resource.id}"
+                                           data-price="${resource.price}"
+                                           ${disabledAttr}>
+                                </div>
+                            </div>
+                            <p class="card-text text-muted small mb-2">
+                                <i class="bi bi-tag"></i> ${resource.type}
+                            </p>
+                            <p class="card-text text-muted small mb-2">
+                                <i class="bi bi-people"></i> Capacidad: ${resource.capacity || 'N/A'}
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-primary fs-6">$${parseFloat(resource.price).toFixed(2)}</span>
+                                ${statusBadge}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        roomsCheckboxes.innerHTML = `<div class="row">${html}</div>`;
+        
+        // Add event listeners to cards and checkboxes
+        document.querySelectorAll('.resource-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                if (e.target.type !== 'checkbox') {
+                    const checkbox = this.querySelector('.room-checkbox');
+                    if (!checkbox.disabled) {
+                        checkbox.checked = !checkbox.checked;
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                }
+            });
+        });
+        
+        document.querySelectorAll('.room-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const card = this.closest('.resource-card');
+                if (this.checked) {
+                    card.classList.add('border-primary', 'bg-light');
+                } else {
+                    card.classList.remove('border-primary', 'bg-light');
+                }
+                updateRoomPrices();
+            });
+        });
+    }
 
     // Load resources based on type
     function loadResources(type) {
