@@ -123,8 +123,8 @@
                                     class="form-control" 
                                     id="smtp_host" 
                                     name="smtp_host"
-                                    value="<?= e($settings['smtp_host'] ?? 'ranchoparaisoreal.com') ?>"
-                                    placeholder="Ej: ranchoparaisoreal.com"
+                                    value="<?= e($settings['smtp_host'] ?? 'mail.ranchoparaisoreal.com') ?>"
+                                    placeholder="Ej: mail.ranchoparaisoreal.com"
                                 >
                                 <div class="form-text">
                                     Servidor de correo saliente (SMTP)
