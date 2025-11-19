@@ -20,6 +20,7 @@ Sistema completo de gestión hotelera con módulos de habitaciones, restaurante,
 - MySQL 5.7 o superior
 - Servidor Web Apache con mod_rewrite habilitado
 - Extensiones PHP: PDO, PDO_MySQL, mbstring, openssl
+- Composer (para instalar dependencias PHP)
 
 ## 🚀 Instalación en Servidor Apache
 
@@ -32,7 +33,15 @@ cd mayordomo
 
 O descarga el archivo ZIP y extráelo en tu directorio del servidor (por ejemplo: `/var/www/html/` o `htdocs/`).
 
-### 2. Configurar Base de Datos
+### 2. Instalar Dependencias
+
+```bash
+composer install
+```
+
+> **Importante:** Este paso instala PHPMailer y otras dependencias necesarias para el envío de correos electrónicos y otras funcionalidades del sistema.
+
+### 3. Configurar Base de Datos
 
 #### Crear la base de datos MySQL:
 
@@ -74,7 +83,7 @@ mysql -u root -p majorbot_db < database/migration_v1.1.0.sql
 
 > **Nota**: La migración agrega funcionalidades de Reservaciones, Pedidos & Facturación, Superadmin y Notificaciones. Ver [database/MIGRATION_GUIDE.md](database/MIGRATION_GUIDE.md) para más detalles.
 
-### 3. Configurar Credenciales
+### 4. Configurar Credenciales
 
 Edita el archivo `config/config.php` y actualiza las credenciales de la base de datos:
 
@@ -85,7 +94,7 @@ define('DB_USER', 'root');      // Tu usuario MySQL
 define('DB_PASS', '');          // Tu contraseña MySQL
 ```
 
-### 4. Configurar Apache
+### 5. Configurar Apache
 
 #### Habilitar mod_rewrite (si no está habilitado):
 
@@ -117,14 +126,14 @@ Si usas VirtualHost, agrega a `/etc/hosts`:
 127.0.0.1   majorbot.local
 ```
 
-### 5. Verificar Permisos
+### 6. Verificar Permisos
 
 ```bash
 chmod 755 /var/www/html/mayordomo
 chmod -R 755 /var/www/html/mayordomo/public
 ```
 
-### 6. Probar Instalación
+### 7. Probar Instalación
 
 Abre tu navegador y accede a:
 
@@ -139,7 +148,7 @@ Este script verificará:
 - ✓ Extensiones PHP requeridas
 - ✓ Permisos de directorios
 
-### 7. Acceder al Sistema
+### 8. Acceder al Sistema
 
 ```
 http://localhost/mayordomo/public/

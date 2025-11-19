@@ -22,6 +22,18 @@ cd mayordomo
 # Opción B: Descargar ZIP y extraer
 ```
 
+### Paso 2.5: Instalar Dependencias
+
+```bash
+# Instalar Composer si no está instalado
+# Descargar de https://getcomposer.org/download/
+
+# Instalar PHPMailer y otras dependencias
+composer install
+```
+
+> **Importante:** Este paso es necesario para que el sistema de correos electrónicos funcione correctamente.
+
 ### Paso 3: Configurar Base de Datos
 
 ```bash
@@ -191,9 +203,9 @@ Actualizar PHP a versión 7.0 o superior
 ### Servidor Linux (Ubuntu/Debian)
 
 ```bash
-# Instalar Apache, PHP y MySQL
+# Instalar Apache, PHP, MySQL y Composer
 sudo apt update
-sudo apt install apache2 php php-mysql mysql-server libapache2-mod-php php-mbstring
+sudo apt install apache2 php php-mysql mysql-server libapache2-mod-php php-mbstring composer
 
 # Habilitar mod_rewrite
 sudo a2enmod rewrite
@@ -203,9 +215,13 @@ cd /var/www/html
 sudo git clone https://github.com/danjohn007/mayordomo.git
 sudo chown -R www-data:www-data mayordomo
 
+# Instalar dependencias PHP (PHPMailer)
+cd mayordomo
+sudo -u www-data composer install
+
 # Configurar base de datos
-sudo mysql -u root -p < mayordomo/database/schema.sql
-sudo mysql -u root -p majorbot_db < mayordomo/database/sample_data.sql
+sudo mysql -u root -p < database/schema.sql
+sudo mysql -u root -p majorbot_db < database/sample_data.sql
 
 # Reiniciar Apache
 sudo systemctl restart apache2
