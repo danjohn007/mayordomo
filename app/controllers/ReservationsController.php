@@ -30,8 +30,8 @@ class ReservationsController extends BaseController {
             'date_to' => sanitize($_GET['date_to'] ?? '')
         ];
         
-        // Construir query base - solo mostrar reservaciones activas (no canceladas)
-        $sql = "SELECT * FROM v_all_reservations WHERE hotel_id = ? AND status != 'cancelled'";
+        // Construir query base
+        $sql = "SELECT * FROM v_all_reservations WHERE hotel_id = ?";
         $params = [$hotelId];
         
         // Aplicar filtros
@@ -43,6 +43,9 @@ class ReservationsController extends BaseController {
         if (!empty($filters['status'])) {
             $sql .= " AND status = ?";
             $params[] = $filters['status'];
+        } else {
+            // Si no se especifica un filtro de estado, excluir canceladas por defecto
+            $sql .= " AND status != 'cancelled'";
         }
         
         if (!empty($filters['search'])) {

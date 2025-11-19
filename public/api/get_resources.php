@@ -47,6 +47,10 @@ try {
     $db = Database::getInstance()->getConnection();
     $hotelId = $user['hotel_id'];
     
+    // Get optional date parameters for availability checking
+    $checkIn = $_GET['check_in'] ?? null;
+    $checkOut = $_GET['check_out'] ?? null;
+    
     if ($type === 'room') {
         $stmt = $db->prepare("
             SELECT id, room_number, type, capacity, price, status 
@@ -55,6 +59,39 @@ try {
             ORDER BY room_number
         ");
         $stmt->execute([$hotelId]);
+        
+        // If dates are provided, check availability for each room
+        if ($checkIn && $checkOut) {
+            $rooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($rooms as &$room) {
+                // Check if room is available for the date range
+                $availStmt = $db->prepare("
+                    SELECT COUNT(*) as count
+                    FROM room_reservations
+                    WHERE room_id = ?
+                    AND hotel_id = ?
+                    AND status NOT IN ('cancelled', 'completed', 'checked_out')
+                    AND (
+                        (check_in <= ? AND check_out > ?)
+                        OR (check_in < ? AND check_out >= ?)
+                        OR (check_in >= ? AND check_out <= ?)
+                    )
+                ");
+                $availStmt->execute([
+                    $room['id'],
+                    $hotelId,
+                    $checkIn, $checkIn,
+                    $checkOut, $checkOut,
+                    $checkIn, $checkOut
+                ]);
+                $conflictCount = $availStmt->fetch(PDO::FETCH_ASSOC)['count'];
+                $room['available'] = ($conflictCount == 0);
+            }
+            $resources = $rooms;
+        } else {
+            // No dates provided, return all rooms as available
+            $resources = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
     } elseif ($type === 'table') {
         $stmt = $db->prepare("
             SELECT id, table_number, capacity, location, status 
@@ -63,6 +100,7 @@ try {
             ORDER BY table_number
         ");
         $stmt->execute([$hotelId]);
+        $resources = $stmt->fetchAll(PDO::FETCH_ASSOC);
     } elseif ($type === 'amenity') {
         $stmt = $db->prepare("
             SELECT id, name, category, price, capacity, opening_time, closing_time 
@@ -71,9 +109,8 @@ try {
             ORDER BY name
         ");
         $stmt->execute([$hotelId]);
+        $resources = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-    
-    $resources = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Ensure resources is always an array
     if ($resources === false) {
