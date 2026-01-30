@@ -3,9 +3,6 @@ RewriteEngine On
 # Deny access to config and database directories
 RewriteRule ^(config|database)/ - [F,L]
 
-# Allow direct access to files in public/api directory
-RewriteRule ^public/api/(.+)$ public/api/$1 [L]
-
 # Redirect all requests to public/index.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
