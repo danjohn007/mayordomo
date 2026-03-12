@@ -38,9 +38,9 @@ define('APP_VERSION', '1.0.0');
 
 // Database configuration
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'majorbot_sistema');
-define('DB_USER', 'majorbot_sistema');
-define('DB_PASS', 'Danjohn007!');
+define('DB_NAME', 'enolobot_chatbot');
+define('DB_USER', 'enolobot_chatbot');
+define('DB_PASS', ';FY7mUvCtQ%d');
 define('DB_CHARSET', 'utf8mb4');
 
 // Path configuration
