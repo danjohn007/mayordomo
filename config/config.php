@@ -33,7 +33,7 @@ function detectBaseUrl() {
 
 // Application configuration
 define('BASE_URL', detectBaseUrl());
-define('APP_NAME', 'MajorBot');
+define('APP_NAME', 'EnoloBot');
 define('APP_VERSION', '1.0.0');
 
 // Database configuration
